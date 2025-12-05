@@ -1,25 +1,17 @@
 name: leave_management_app
 description: "A new Flutter project."
 
-
-publish_to: 'none' 
-
-
+publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.6.0
-
-
-
+  sdk: ">=3.6.0 <4.0.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
-
-    
   # Firebase core (required)
   firebase_core: ^2.24.2
 
@@ -31,59 +23,29 @@ dependencies:
 
   # Storage (for uploaded signed leave forms)
   firebase_storage: ^11.6.0
-  
-  
+
   cupertino_icons: ^1.0.8
+  google_fonts: ^4.0.3
+
+  # Utilities
+  shared_preferences: ^2.1.1
+  uuid: ^3.0.6
+  intl: ^0.18.0
+
+  # UI & PDF & images
+  flutter_slidable: ^1.2.0
+  pdf: ^3.10.1
+  printing: ^5.11.0
+  image_picker: ^0.8.7+6
+  path_provider: ^2.0.14
+
+  # URL Launcher
+  url_launcher: ^6.1.10
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  
-  
-  
-  
-  
   flutter_lints: ^5.0.0
 
-
-
-
-
 flutter:
-
-  
-  
-  
   uses-material-design: true
-
-  
-  
-  
-  
-
-  
-  
-
-  
-  
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
