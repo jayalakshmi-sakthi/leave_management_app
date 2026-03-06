@@ -12,7 +12,20 @@
           "package_name": "com.example.leave_management_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "476708106662-huv3cp5uaf0eup361r6qmvqljsrlcpgi.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.leave_management_app",
+            "certificate_hash": "e052b3a6d998826b20a99022ffc7e3861c8f996a"
+          }
+        },
+        {
+          "client_id": "476708106662-tkafgjdqu0i04tn6tqffugqa1iemuh0q.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBguzU19KqLZLyLCc8R6zFFivFu8jzLX1c"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "476708106662-tkafgjdqu0i04tn6tqffugqa1iemuh0q.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "476708106662-4c7p0f2u2d46ka4vfvf8v6j0ustbl6cc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.leaveManagementApp"
+              }
+            }
+          ]
         }
       }
     }

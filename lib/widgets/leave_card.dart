@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../utils/helpers.dart';
+import '../utils/helpers.dart'; // Provides getStatusColor and getStatusLabel
+// Assuming the file below now correctly defines AppColors:
 import '../utils/theme.dart';
 import '../models/leave_model.dart';
 
@@ -9,8 +10,13 @@ class LeaveCard extends StatelessWidget {
 
   const LeaveCard({super.key, required this.leave, this.onTap});
 
+  // 🎯 Note: The redundant _getStatusColor function has been removed from here.
+
   @override
   Widget build(BuildContext context) {
+    // 1. Centralize color retrieval using the Helpers class
+    final statusColor = Helpers.getStatusColor(leave.status);
+
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -20,7 +26,9 @@ class LeaveCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(Icons.calendar_month, size: 32, color: AppColors.primary),
+              // Icon
+              const Icon(Icons.calendar_month,
+                  size: 32, color: AppColors.primary),
 
               const SizedBox(width: 12),
 
@@ -67,15 +75,18 @@ class LeaveCard extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(leave.status).withOpacity(0.15),
+                  // Use the centralized statusColor for the background
+                  color: statusColor.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  leave.status,
+                  // 🎯 Enhancement: Use Helpers.getStatusLabel for consistent capitalization
+                  Helpers.getStatusLabel(leave.status),
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: _getStatusColor(leave.status),
+                    // Use the centralized statusColor for text color
+                    color: statusColor,
                   ),
                 ),
               ),
@@ -84,16 +95,5 @@ class LeaveCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case "approved":
-        return Colors.green;
-      case "rejected":
-        return Colors.red;
-      default:
-        return AppColors.primary;
-    }
   }
 }

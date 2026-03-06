@@ -1,0 +1,51 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "leave-management-app-f07b8",
+          "appId": "1:476708106662:android:cf9792f064f436b9e69f67",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "leave-management-app-f07b8",
+          "configurations": {
+            "android": "1:476708106662:android:cf9792f064f436b9e69f67",
+            "ios": "1:476708106662:ios:e09ced937188a55be69f67",
+            "macos": "1:476708106662:ios:e09ced937188a55be69f67",
+            "web": "1:476708106662:web:40db61972509e618e69f67",
+            "windows": "1:476708106662:web:2f4f6cc251fa2db9e69f67"
+          }
+        }
+      }
+    }
+  },
+  "emulators": {
+    "singleProjectMode": true,
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8080
+    },
+    "ui": {
+      "enabled": true
+    }
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  }
+}

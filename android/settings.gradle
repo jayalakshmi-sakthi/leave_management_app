@@ -24,7 +24,7 @@ plugins {
     id "com.android.library" version "8.2.2" apply false
 
     // FlutterFire plugin (same version is fine)
-    id "com.google.gms.google-services" version "4.3.15" apply false
+    id "com.google.gms.google-services" version "4.4.1" apply false
 
     // UPDATED KOTLIN FOR AGP 8.2.x COMPATIBILITY
     id "org.jetbrains.kotlin.android" version "1.9.22" apply false

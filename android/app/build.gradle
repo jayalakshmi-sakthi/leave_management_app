@@ -6,40 +6,45 @@ plugins {
 }
 
 android {
-    namespace "com.example.leave_management_app" // Change to your actual package
+    namespace "com.example.leave_management_app"
     compileSdkVersion 35
-    ndkVersion flutter.ndkVersion
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
 
     defaultConfig {
         applicationId "com.example.leave_management_app"
-        minSdkVersion 21
+        minSdkVersion 23
         targetSdkVersion 35
-        versionCode 1           // <-- hardcoded
-        versionName "1.0.0"    // <-- hardcoded
-        multiDexEnabled true
-}
 
+        versionCode flutter.versionCode
+        versionName flutter.versionName
+
+        multiDexEnabled true
+    }
 
     buildTypes {
         release {
+            minifyEnabled false
+            shrinkResources false  // <- MAKE SURE THIS IS FALSE
             signingConfig signingConfigs.debug
         }
+        debug {
+            minifyEnabled false
+            shrinkResources false
+        }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+        coreLibraryDesugaringEnabled true // ✅ Added for flutter_local_notifications
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+
 }
 
 dependencies {
-    implementation 'com.android.support:multidex:1.0.3'
+    implementation 'androidx.multidex:multidex:2.0.1'
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4' // ✅ Added
 }

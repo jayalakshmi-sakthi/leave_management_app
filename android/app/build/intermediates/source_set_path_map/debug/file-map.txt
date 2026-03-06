@@ -1,0 +1,62 @@
+com.example.leave_management_app-google-services-0 C:\CAREER PROJECTS\leave_management_app\android\app\build\generated\res\google-services\debug
+com.example.leave_management_app-pngs-1 C:\CAREER PROJECTS\leave_management_app\android\app\build\generated\res\pngs\debug
+com.example.leave_management_app-resValues-2 C:\CAREER PROJECTS\leave_management_app\android\app\build\generated\res\resValues\debug
+com.example.leave_management_app-packageDebugResources-3 C:\CAREER PROJECTS\leave_management_app\android\app\build\intermediates\incremental\debug\packageDebugResources\merged.dir
+com.example.leave_management_app-packageDebugResources-4 C:\CAREER PROJECTS\leave_management_app\android\app\build\intermediates\incremental\debug\packageDebugResources\stripped.dir
+com.example.leave_management_app-merged_res-5 C:\CAREER PROJECTS\leave_management_app\android\app\build\intermediates\merged_res\debug
+com.example.leave_management_app-debug-6 C:\CAREER PROJECTS\leave_management_app\android\app\src\debug\res
+com.example.leave_management_app-main-7 C:\CAREER PROJECTS\leave_management_app\android\app\src\main\res
+com.example.leave_management_app-transition-1.4.1-8 C:\Users\sakth\.gradle\caches\transforms-4\0892f1460eaded9c37da367197cf137c\transformed\transition-1.4.1\res
+com.example.leave_management_app-jetified-window-java-1.2.0-9 C:\Users\sakth\.gradle\caches\transforms-4\0c528c153308114a6071a87d0cecbf20\transformed\jetified-window-java-1.2.0\res
+com.example.leave_management_app-jetified-datastore-release-10 C:\Users\sakth\.gradle\caches\transforms-4\23407d4eb854f1be6bac20d7077df70f\transformed\jetified-datastore-release\res
+com.example.leave_management_app-jetified-core-viewtree-1.0.0-11 C:\Users\sakth\.gradle\caches\transforms-4\2861e68ae54537215d97e1c48f03dd7f\transformed\jetified-core-viewtree-1.0.0\res
+com.example.leave_management_app-jetified-savedstate-1.2.1-12 C:\Users\sakth\.gradle\caches\transforms-4\3409ec068d46277b7eb6e28889212bdb\transformed\jetified-savedstate-1.2.1\res
+com.example.leave_management_app-jetified-fragment-ktx-1.7.1-13 C:\Users\sakth\.gradle\caches\transforms-4\3cb1e2eb89e6b41c8b61367c658c40ba\transformed\jetified-fragment-ktx-1.7.1\res
+com.example.leave_management_app-jetified-activity-ktx-1.10.1-14 C:\Users\sakth\.gradle\caches\transforms-4\46d3705745cd12e02920f802d781afb0\transformed\jetified-activity-ktx-1.10.1\res
+com.example.leave_management_app-appcompat-1.1.0-15 C:\Users\sakth\.gradle\caches\transforms-4\46f886893ca11dae9af3f7ace68ad7f7\transformed\appcompat-1.1.0\res
+com.example.leave_management_app-jetified-firebase-common-21.0.0-16 C:\Users\sakth\.gradle\caches\transforms-4\473609dcd0c1105f97952bf88a85835b\transformed\jetified-firebase-common-21.0.0\res
+com.example.leave_management_app-jetified-credentials-1.2.0-rc01-17 C:\Users\sakth\.gradle\caches\transforms-4\4a43931108935357894d76b1d4d77465\transformed\jetified-credentials-1.2.0-rc01\res
+com.example.leave_management_app-lifecycle-viewmodel-2.7.0-18 C:\Users\sakth\.gradle\caches\transforms-4\4f8000b90a418aa29b7eeffd8037e242\transformed\lifecycle-viewmodel-2.7.0\res
+com.example.leave_management_app-jetified-startup-runtime-1.1.1-19 C:\Users\sakth\.gradle\caches\transforms-4\514444db4e940cd30bb8f10d0a9baa23\transformed\jetified-startup-runtime-1.1.1\res
+com.example.leave_management_app-jetified-core-1.0.0-20 C:\Users\sakth\.gradle\caches\transforms-4\51f5118886772a52851026d0c23606b5\transformed\jetified-core-1.0.0\res
+com.example.leave_management_app-jetified-appcompat-resources-1.1.0-21 C:\Users\sakth\.gradle\caches\transforms-4\54d3abe1f2d88321e9257b4f0fe7db6b\transformed\jetified-appcompat-resources-1.1.0\res
+com.example.leave_management_app-jetified-lifecycle-viewmodel-ktx-2.7.0-22 C:\Users\sakth\.gradle\caches\transforms-4\5738a6121c9e9ae8bb0c87bb129994bc\transformed\jetified-lifecycle-viewmodel-ktx-2.7.0\res
+com.example.leave_management_app-jetified-datastore-preferences-release-23 C:\Users\sakth\.gradle\caches\transforms-4\5ccd4cfcf295f0fa65028a33ffd5a16c\transformed\jetified-datastore-preferences-release\res
+com.example.leave_management_app-preference-1.2.1-24 C:\Users\sakth\.gradle\caches\transforms-4\6fe2a2df01230d56b8d352bf7b174da8\transformed\preference-1.2.1\res
+com.example.leave_management_app-lifecycle-livedata-core-2.7.0-25 C:\Users\sakth\.gradle\caches\transforms-4\7409caa20a6b44b10c36bd6ca51ce639\transformed\lifecycle-livedata-core-2.7.0\res
+com.example.leave_management_app-jetified-annotation-experimental-1.4.0-26 C:\Users\sakth\.gradle\caches\transforms-4\8023063eab88769369a8a6a263e36159\transformed\jetified-annotation-experimental-1.4.0\res
+com.example.leave_management_app-jetified-lifecycle-viewmodel-savedstate-2.7.0-27 C:\Users\sakth\.gradle\caches\transforms-4\8557c3ae03086972207fcda2c4d93de8\transformed\jetified-lifecycle-viewmodel-savedstate-2.7.0\res
+com.example.leave_management_app-jetified-datastore-core-release-28 C:\Users\sakth\.gradle\caches\transforms-4\866c72d9dee9a0bb1e7582b7fca13636\transformed\jetified-datastore-core-release\res
+com.example.leave_management_app-jetified-window-1.2.0-29 C:\Users\sakth\.gradle\caches\transforms-4\8a94dae76591350e5c26086c4c6508d7\transformed\jetified-window-1.2.0\res
+com.example.leave_management_app-jetified-lifecycle-livedata-core-ktx-2.7.0-30 C:\Users\sakth\.gradle\caches\transforms-4\8aa9fd44f21097a5bb73561955aa67f3\transformed\jetified-lifecycle-livedata-core-ktx-2.7.0\res
+com.example.leave_management_app-jetified-play-services-auth-20.7.0-31 C:\Users\sakth\.gradle\caches\transforms-4\8da89d6bab66504c6a489fe968cc1ba4\transformed\jetified-play-services-auth-20.7.0\res
+com.example.leave_management_app-jetified-play-services-base-18.1.0-32 C:\Users\sakth\.gradle\caches\transforms-4\8e6221d935994b40565820ee688cdc7c\transformed\jetified-play-services-base-18.1.0\res
+com.example.leave_management_app-jetified-profileinstaller-1.4.0-33 C:\Users\sakth\.gradle\caches\transforms-4\8e7509e9d3ba320834b3fc23b0245984\transformed\jetified-profileinstaller-1.4.0\res
+com.example.leave_management_app-core-runtime-2.2.0-34 C:\Users\sakth\.gradle\caches\transforms-4\8fb791c02b4543653628c8b2cfa3a8a4\transformed\core-runtime-2.2.0\res
+com.example.leave_management_app-fragment-1.7.1-35 C:\Users\sakth\.gradle\caches\transforms-4\9055376b4d89be37035f73c3ce5b1ab5\transformed\fragment-1.7.1\res
+com.example.leave_management_app-lifecycle-livedata-2.7.0-36 C:\Users\sakth\.gradle\caches\transforms-4\9082dc2002b66b6469f07c3498040d64\transformed\lifecycle-livedata-2.7.0\res
+com.example.leave_management_app-recyclerview-1.0.0-37 C:\Users\sakth\.gradle\caches\transforms-4\97fb5fe2a1bb0d486fd7309f4df97b8e\transformed\recyclerview-1.0.0\res
+com.example.leave_management_app-jetified-savedstate-ktx-1.2.1-38 C:\Users\sakth\.gradle\caches\transforms-4\9fe891d32de32ebbca4d489c1fdee9a0\transformed\jetified-savedstate-ktx-1.2.1\res
+com.example.leave_management_app-jetified-lifecycle-runtime-ktx-2.7.0-39 C:\Users\sakth\.gradle\caches\transforms-4\a98fe17c99dac30ffc1aa4eff4ccec62\transformed\jetified-lifecycle-runtime-ktx-2.7.0\res
+com.example.leave_management_app-jetified-play-services-basement-18.4.0-40 C:\Users\sakth\.gradle\caches\transforms-4\b6f0d7f762bd03e26503c5a60625408a\transformed\jetified-play-services-basement-18.4.0\res
+com.example.leave_management_app-jetified-credentials-play-services-auth-1.2.0-rc01-41 C:\Users\sakth\.gradle\caches\transforms-4\c05d1d74e783f3ad052e6c2702f327a6\transformed\jetified-credentials-play-services-auth-1.2.0-rc01\res
+com.example.leave_management_app-lifecycle-runtime-2.7.0-42 C:\Users\sakth\.gradle\caches\transforms-4\c54a5abb7737ad8d786e2d016e54bf3c\transformed\lifecycle-runtime-2.7.0\res
+com.example.leave_management_app-browser-1.8.0-43 C:\Users\sakth\.gradle\caches\transforms-4\c602ed88cc9ccf9ad432521482aaa8a1\transformed\browser-1.8.0\res
+com.example.leave_management_app-core-1.13.1-44 C:\Users\sakth\.gradle\caches\transforms-4\cfa15e92d64d15cb5ab13a9e13853c69\transformed\core-1.13.1\res
+com.example.leave_management_app-jetified-core-ktx-1.13.1-45 C:\Users\sakth\.gradle\caches\transforms-4\e4f7cc9a88b8cfd36e397c74c4875454\transformed\jetified-core-ktx-1.13.1\res
+com.example.leave_management_app-slidingpanelayout-1.2.0-46 C:\Users\sakth\.gradle\caches\transforms-4\f3fa76209b141b53c100947712c7ae37\transformed\slidingpanelayout-1.2.0\res
+com.example.leave_management_app-jetified-core-common-2.0.3-47 C:\Users\sakth\.gradle\caches\transforms-4\f8910def6c3c01ac5835e28ddb3c6040\transformed\jetified-core-common-2.0.3\res
+com.example.leave_management_app-jetified-tracing-1.2.0-48 C:\Users\sakth\.gradle\caches\transforms-4\f895c5bac594e0f7e20884d61e97dbce\transformed\jetified-tracing-1.2.0\res
+com.example.leave_management_app-coordinatorlayout-1.0.0-49 C:\Users\sakth\.gradle\caches\transforms-4\fa34317c2450ba9520749771f4636db0\transformed\coordinatorlayout-1.0.0\res
+com.example.leave_management_app-jetified-activity-1.10.1-50 C:\Users\sakth\.gradle\caches\transforms-4\fbca24bf26eab8c7f7e087c7c1da8be4\transformed\jetified-activity-1.10.1\res
+com.example.leave_management_app-jetified-lifecycle-process-2.7.0-51 C:\Users\sakth\.gradle\caches\transforms-4\ffe09bcf96358f8e90cb3dd8d287d81f\transformed\jetified-lifecycle-process-2.7.0\res
+com.example.leave_management_app-packaged_res-52 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\cloud_firestore-5.6.12\android\build\intermediates\packaged_res\debug
+com.example.leave_management_app-packaged_res-53 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_auth-5.7.0\android\build\intermediates\packaged_res\debug
+com.example.leave_management_app-packaged_res-54 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_core-3.15.2\android\build\intermediates\packaged_res\debug
+com.example.leave_management_app-packaged_res-55 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\firebase_storage-12.4.10\android\build\intermediates\packaged_res\debug
+com.example.leave_management_app-packaged_res-56 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\flutter_plugin_android_lifecycle-2.0.29\android\build\intermediates\packaged_res\debug
+com.example.leave_management_app-packaged_res-57 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\image_picker_android-0.8.13\android\build\intermediates\packaged_res\debug
+com.example.leave_management_app-packaged_res-58 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\path_provider_android-2.2.17\android\build\intermediates\packaged_res\debug
+com.example.leave_management_app-packaged_res-59 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\printing-5.14.2\android\build\intermediates\packaged_res\debug
+com.example.leave_management_app-packaged_res-60 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\shared_preferences_android-2.4.11\android\build\intermediates\packaged_res\debug
+com.example.leave_management_app-packaged_res-61 C:\Users\sakth\AppData\Local\Pub\Cache\hosted\pub.dev\url_launcher_android-6.3.17\android\build\intermediates\packaged_res\debug

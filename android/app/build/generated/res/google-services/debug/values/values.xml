@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="gcm_defaultSenderId" translatable="false">476708106662</string>
+    <string name="google_api_key" translatable="false">AIzaSyBguzU19KqLZLyLCc8R6zFFivFu8jzLX1c</string>
+    <string name="google_app_id" translatable="false">1:476708106662:android:cf9792f064f436b9e69f67</string>
+    <string name="google_crash_reporting_api_key" translatable="false">AIzaSyBguzU19KqLZLyLCc8R6zFFivFu8jzLX1c</string>
+    <string name="google_storage_bucket" translatable="false">leave-management-app-f07b8.firebasestorage.app</string>
+    <string name="project_id" translatable="false">leave-management-app-f07b8</string>
+</resources>

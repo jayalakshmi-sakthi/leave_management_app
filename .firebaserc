@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "leave-management-app-f07b8"
+  },
+  "targets": {
+    "leave-management-app-f07b8": {
+      "hosting": {
+        "leavex-staff": [
+          "leavex-staff"
+        ]
+      }
+    }
+  }
+}
