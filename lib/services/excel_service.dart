@@ -154,12 +154,13 @@ class ExcelService {
     // Remove placeholder
     excel.delete('Placeholder');
 
-    // Save
-    final fileBytes = excel.save();
+    // Encode to bytes (using encode() instead of save() to avoid double download/side-effects on Web)
+    final fileBytes = excel.encode();
     if (fileBytes == null) return;
 
+    final safeName = userName.replaceAll(RegExp(r'[^\w]+'), '_');
     final safeId = employeeId.replaceAll(RegExp(r'[^\w]+'), '');
-    final fileName = "LeaveReport_${safeId}_$academicYear.xlsx";
+    final fileName = "LeaveReport_${safeName}_${safeId}_$academicYear.xlsx";
     
     await UniversalFileSaver.saveFile(
       bytes: fileBytes,

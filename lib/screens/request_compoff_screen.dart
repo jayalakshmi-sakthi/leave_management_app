@@ -97,6 +97,7 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
       // SUBMIT VIA SERVICE TO GET SEQUENTIAL ID
       final applicationId = await FirestoreService().createCompOffRequest(
         userId: user.uid,
+        userName: userName, // ✅ Added
         employeeId: employeeId,
         department: department,
         fromDate: _fromDate!,

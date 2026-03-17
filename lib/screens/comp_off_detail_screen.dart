@@ -9,6 +9,51 @@ class CompOffDetailScreen extends StatelessWidget {
 
   const CompOffDetailScreen({super.key, required this.docId, this.department});
 
+  Future<Map<String, dynamic>?> _fetchData() async {
+    try {
+      // 1. Try DIRECT Fetch if department is known (Most Reliable)
+      if (department != null && department!.isNotEmpty) {
+        // Try compOffRequests (Earn)
+        var doc = await FirebaseFirestore.instance
+            .collection('compOffRequests')
+            .doc(department)
+            .collection('records')
+            .doc(docId)
+            .get();
+        if (doc.exists) return doc.data();
+
+        // Try leaveRequests (Usage) - Just in case
+        doc = await FirebaseFirestore.instance
+            .collection('leaveRequests')
+            .doc(department)
+            .collection('records')
+            .doc(docId)
+            .get();
+        if (doc.exists) return doc.data();
+      }
+
+      // 2. Fallback to Collection Group Search (Using 'id' field)
+      final snap = await FirebaseFirestore.instance
+          .collectionGroup('records')
+          .where('id', isEqualTo: docId)
+          .limit(1)
+          .get();
+      if (snap.docs.isNotEmpty) return snap.docs.first.data();
+
+      // 3. Last Resort Fallback (Using document ID)
+      final snap2 = await FirebaseFirestore.instance
+          .collectionGroup('records')
+          .where(FieldPath.documentId, isEqualTo: docId)
+          .limit(1)
+          .get();
+      if (snap2.docs.isNotEmpty) return snap2.docs.first.data();
+
+    } catch (e) {
+      debugPrint("❌ Error fetching Comp-Off Detail: $e");
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,22 +61,28 @@ class CompOffDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Comp-Off Request Info", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: FutureBuilder<QuerySnapshot>(
-        // ✅ Robust Fetch: Search across all departments using collectionGroup
-        future: FirebaseFirestore.instance
-            .collectionGroup('records')
-            .where(FieldPath.documentId, isEqualTo: docId)
-            .limit(1)
-            .get(),
+      body: FutureBuilder<Map<String, dynamic>?>(
+        future: _fetchData(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("Request not found"));
+          if (!snapshot.hasData || snapshot.data == null) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.search_off_rounded, size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text("Request not found", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text("ID: $docId", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ),
+            );
           }
 
-          final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+          final data = snapshot.data!;
           
           // Parse Dates
           dynamic workedVal = data['workedDate'];

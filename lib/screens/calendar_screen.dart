@@ -82,10 +82,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        title: const Text("Department Calendar", style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: theme.scaffoldBackgroundColor,
+        title: const Text("Department Calendar", style: TextStyle(fontWeight: FontWeight.w900, color: Colors.white, fontSize: 20)),
+        backgroundColor: const Color(0xFF001C3D),
         elevation: 0,
-        foregroundColor: theme.textTheme.bodyLarge?.color,
+        centerTitle: false,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+        ),
       ),
       body: _userDept == null 
           ? const Center(child: CircularProgressIndicator())
@@ -98,17 +102,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
           return Column(
             children: [
-              // Calendar Card
+              // 📅 Calendar Container (Premium Card)
               Container(
-                margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
                 decoration: BoxDecoration(
                   color: theme.cardColor,
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+                  borderRadius: BorderRadius.circular(24),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10, offset: const Offset(0, 4)),
+                    BoxShadow(
+                      color: const Color(0xFF001C3D).withOpacity(0.06),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
                   ],
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
                 ),
                 child: TableCalendar(
                   firstDay: DateTime.utc(2023, 1, 1),
@@ -117,87 +125,108 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
                   eventLoader: _getEventsForDay,
                   calendarFormat: CalendarFormat.month,
-                  startingDayOfWeek: StartingDayOfWeek.sunday, // Standard Sunday start
-                  rowHeight: 52,
+                  startingDayOfWeek: StartingDayOfWeek.sunday,
+                  rowHeight: 58,
+                  
+                  // --- Header Style ---
                   headerStyle: HeaderStyle(
                     formatButtonVisible: false,
                     titleCentered: true,
-                    titleTextStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF001C3D)),
-                    leftChevronIcon: const Icon(Icons.chevron_left_rounded, color: Color(0xFF001C3D)),
-                    rightChevronIcon: const Icon(Icons.chevron_right_rounded, color: Color(0xFF001C3D)),
-                    headerPadding: const EdgeInsets.symmetric(vertical: 8),
+                    titleTextStyle: const TextStyle(
+                      fontSize: 18, 
+                      fontWeight: FontWeight.w900, 
+                      color: Color(0xFF001C3D),
+                      letterSpacing: -0.5,
+                    ),
+                    leftChevronIcon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: const Color(0xFF001C3D).withOpacity(0.05), shape: BoxShape.circle),
+                      child: const Icon(Icons.chevron_left_rounded, color: Color(0xFF001C3D), size: 20),
+                    ),
+                    rightChevronIcon: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(color: const Color(0xFF001C3D).withOpacity(0.05), shape: BoxShape.circle),
+                      child: const Icon(Icons.chevron_right_rounded, color: Color(0xFF001C3D), size: 20),
+                    ),
+                    headerPadding: const EdgeInsets.only(bottom: 12),
                   ),
+
+                  // --- Days of Week Style ---
                   daysOfWeekStyle: const DaysOfWeekStyle(
-                    weekdayStyle: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13),
-                    weekendStyle: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.w600, fontSize: 13),
+                    weekdayStyle: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold, fontSize: 13),
+                    weekendStyle: TextStyle(color: Color(0xFFEF4444), fontWeight: FontWeight.bold, fontSize: 13),
                   ),
-                  calendarStyle: const CalendarStyle(
+
+                  // --- Calendar Style ---
+                  calendarStyle: CalendarStyle(
+                    todayDecoration: BoxDecoration(
+                      color: const Color(0xFF001C3D).withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    todayTextStyle: const TextStyle(color: Color(0xFF001C3D), fontWeight: FontWeight.bold),
+                    selectedDecoration: const BoxDecoration(
+                      color: Color(0xFF001C3D),
+                      shape: BoxShape.circle,
+                    ),
+                    selectedTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    markerDecoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
                     outsideDaysVisible: false,
-                    markersAlignment: Alignment.bottomCenter,
-                    markerMargin: EdgeInsets.only(top: 2),
                   ),
+
+                  // --- Custom Builders ---
                   builders: CalendarBuilders(
-                    // --- Today ---
                     todayBuilder: (context, date, _) {
-                      return Container(
-                        margin: const EdgeInsets.all(6),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF001C3D).withOpacity(0.08),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF001C3D).withOpacity(0.2), width: 1),
-                        ),
-                        child: Text(
-                          "${date.day}",
-                          style: const TextStyle(color: Color(0xFF001C3D), fontWeight: FontWeight.bold),
+                      return Center(
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF001C3D).withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFF001C3D).withOpacity(0.2)),
+                          ),
+                          child: Text("${date.day}", style: const TextStyle(color: Color(0xFF001C3D), fontWeight: FontWeight.bold)),
                         ),
                       );
                     },
-                    // --- Selected ---
                     selectedBuilder: (context, date, _) {
-                      return Container(
-                        margin: const EdgeInsets.all(6),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF001C3D),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(color: const Color(0xFF001C3D).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2)),
-                          ],
-                        ),
-                        child: Text(
-                          "${date.day}",
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                        ),
-                      );
-                    },
-                    // --- Default Days ---
-                    defaultBuilder: (context, date, _) {
-                      return Container(
-                        alignment: Alignment.center,
-                        child: Text(
-                          "${date.day}",
-                          style: const TextStyle(color: Color(0xFF334155), fontWeight: FontWeight.w500),
+                      return Center(
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF001C3D),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(color: const Color(0xFF001C3D).withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2)),
+                            ],
+                          ),
+                          child: Text("${date.day}", style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                         ),
                       );
                     },
-                    // --- Event Markers ---
                     markerBuilder: (context, date, events) {
-                      if (events.isEmpty) return const SizedBox.shrink();
-                      return Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: events.take(3).map((e) {
-                           final color = Helpers.getLeaveColor(e['leaveType'] ?? '');
-                           return Container(
-                             margin: const EdgeInsets.symmetric(horizontal: 1),
-                             width: 5,
-                             height: 5,
-                             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                           );
-                        }).toList(),
+                      if (events.isEmpty) return null;
+                      return Positioned(
+                        bottom: 4,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: events.take(4).map((e) {
+                            final color = Helpers.getLeaveColor(e['leaveType'] ?? '');
+                            return Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 0.5),
+                              width: 5,
+                              height: 5,
+                              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                            );
+                          }).toList(),
+                        ),
                       );
                     },
                   ),
+
                   onDaySelected: (selectedDay, focusedDay) {
                     setState(() {
                       _selectedDay = selectedDay;
@@ -210,44 +239,50 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
               
+              // 📋 Selection Details Panel
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
                   decoration: BoxDecoration(
                     color: theme.cardColor,
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(40)),
                     boxShadow: [
-                      BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: -10, offset: const Offset(0, -5))
+                      BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 30, offset: const Offset(0, -10))
                     ],
+                    border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                        Row(
+                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                          children: [
-                           Text(
-                             _selectedDay != null 
-                                ? DateFormat('MMMM dd, yyyy').format(_selectedDay!)
-                                : "Select Date",
-                             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: theme.textTheme.titleLarge?.color),
+                           Column(
+                             crossAxisAlignment: CrossAxisAlignment.start,
+                             children: [
+                               Text(
+                                 _selectedDay == null ? "Select Date" : DateFormat('EEE, MMM dd').format(_selectedDay!),
+                                 style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0F172A), letterSpacing: -0.5),
+                               ),
+                               if (_selectedDay != null)
+                                 Text(DateFormat('yyyy').format(_selectedDay!), style: const TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600, fontSize: 13)),
+                             ],
                            ),
-                           const Spacer(),
                            Container(
-                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                              decoration: BoxDecoration(
-                               color: const Color(0xFF001C3D).withOpacity(0.05), 
-                               borderRadius: BorderRadius.circular(12),
-                               border: Border.all(color: const Color(0xFF001C3D).withOpacity(0.1)),
+                               color: const Color(0xFF001C3D).withOpacity(0.08), 
+                               borderRadius: BorderRadius.circular(14),
                              ),
                              child: Text(
                                "${_getEventsForDay(_selectedDay ?? DateTime.now()).length} Records", 
-                               style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF001C3D), fontSize: 13)
+                               style: const TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF001C3D), fontSize: 13, letterSpacing: -0.2)
                              ),
                            )
                          ],
                        ),
-                       const SizedBox(height: 20),
+                       const SizedBox(height: 24),
                        Expanded(
                          child: _buildEventList(),
                        ),
