@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:leave_management_app/services/firestore_service.dart';
+import 'package:leave_management_app/services/notification_service.dart';
+import 'package:leave_management_app/utils/helpers.dart';
+import 'package:leave_management_app/screens/notifications_screen.dart';
 
 // Assuming you have access to your AppColors (e.g., via import '../main.dart';)
 const Color primaryColor = Color(0xFF1E3A8A);
@@ -16,11 +21,26 @@ class _AdminDashboardState extends State<AdminDashboard> {
   late String currentYear;
   // Cache for user names to avoid repeated Firestore reads
   final Map<String, String> _userNameCache = {};
-
+  String _adminDepartment = 'General'; // ✅ Added for isolation
+  bool _isSuperAdmin = false; // ✅ Added
   @override
   void initState() {
     super.initState();
     currentYear = _getAcademicYear();
+    _loadAdminProfile(); // ✅ Added
+  }
+
+  Future<void> _loadAdminProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (doc.exists && mounted) {
+        setState(() {
+          _isSuperAdmin = doc.data()?['role'] == 'super_admin';
+          _adminDepartment = doc.data()?['department'] ?? 'General';
+        });
+      }
+    }
   }
 
   // --- Utility Functions ---
@@ -72,12 +92,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
   // --- Firestore Actions ---
 
   Future<void> _updateStatus(String docId, String newStatus) async {
-    // Use an overlay loading indicator if necessary, but Snackbar is fine for now
     try {
-      await FirebaseFirestore.instance
-          .collection("leaveRequests")
-          .doc(docId)
-          .update({"status": newStatus});
+      final approverId = FirebaseAuth.instance.currentUser?.uid ?? '';
+      await FirestoreService().updateLeaveStatus(
+        docId, 
+        currentYear, 
+        newStatus, 
+        approverId
+      );
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -110,34 +132,59 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   // --- UI Builder Widgets ---
 
-  // Summary Card Widget (Improved styling)
-  Widget _summaryCard(String title, int count, Color color) {
+  // Summary Card Widget (Premium design)
+  Widget _summaryCard(String title, int count, Color color, IconData icon) {
     return Expanded(
-      child: Card(
-        color: color.withOpacity(0.1),
-        elevation: 1,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-          child: Column(
-            children: [
-              Text(title,
-                  style: TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600, color: color)),
-              const SizedBox(height: 6),
-              Text("$count",
-                  style: TextStyle(
-                      fontSize: 24, fontWeight: FontWeight.bold, color: color)),
-            ],
-          ),
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: color.withOpacity(0.2)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 16),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              "$count",
+              style: TextStyle(
+                fontSize: 20, 
+                fontWeight: FontWeight.bold, 
+                color: color,
+                letterSpacing: -0.5,
+              )
+            ),
+            const SizedBox(height: 2),
+            Text(
+              title,
+              style: TextStyle(
+                fontSize: 10, 
+                fontWeight: FontWeight.w600, 
+                color: color.withOpacity(0.7),
+                letterSpacing: 0.2,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
         ),
       ),
     );
   }
 
   // Leave Request List Tile
-  Widget _buildLeaveTile(
-      DocumentSnapshot doc, Map<String, dynamic> data, Color statusColor) {
+  Widget _buildLeaveTile(Map<String, dynamic> data, Color statusColor) {
+    final String docId = data['id'] ?? '';
     final String userId = data['userId'] ?? '';
     final String leaveType = data['leaveType'] ?? 'N/A';
     final String status = data['status'] ?? 'pending';
@@ -155,16 +202,41 @@ class _AdminDashboardState extends State<AdminDashboard> {
             onTap: () {
               // Navigate to detail screen to see reason, dates, etc.
               Navigator.pushNamed(context, '/detail',
-                  arguments: {'leaveId': doc.id});
+                  arguments: {'leaveId': docId});
             },
-            leading: CircleAvatar(
-              backgroundColor: statusColor,
-              child: Text(leaveType[0],
-                  style: const TextStyle(
-                      color: surfaceColor, fontWeight: FontWeight.bold)),
+            leading: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Helpers.getLeaveIcon(leaveType),
+                color: statusColor,
+                size: 20,
+              ),
             ),
-            title: Text(userName,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
+            title: Row(
+              children: [
+                Expanded(child: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold))),
+                if (_isSuperAdmin && data['department'] != null)
+                   Container(
+                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                     decoration: BoxDecoration(
+                       color: Helpers.getDeptColor(data['department']).withOpacity(0.1),
+                       borderRadius: BorderRadius.circular(4),
+                     ),
+                     child: Row(
+                       mainAxisSize: MainAxisSize.min,
+                       children: [
+                         Icon(Helpers.getDeptIcon(data['department']), size: 8, color: Helpers.getDeptColor(data['department'])),
+                         const SizedBox(width: 4),
+                         Text(data['department'], style: TextStyle(color: Helpers.getDeptColor(data['department']), fontSize: 8, fontWeight: FontWeight.bold)),
+                       ],
+                     ),
+                   ),
+              ],
+            ),
             subtitle: Text(
                 "$leaveType - Days: ${data['numberOfDays'] ?? 'N/A'}\nApplication: ${data['applicationId'] ?? 'N/A'}"),
             trailing: Row(
@@ -175,14 +247,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     icon: const Icon(Icons.check_circle_outline),
                     color: Colors.green,
                     tooltip: 'Approve',
-                    onPressed: () => _updateStatus(doc.id, "approved"),
+                    onPressed: () => _updateStatus(docId, "approved"),
                   ),
                 if (status != 'rejected')
                   IconButton(
                     icon: const Icon(Icons.cancel_outlined),
                     color: Colors.red,
                     tooltip: 'Reject',
-                    onPressed: () => _updateStatus(doc.id, "rejected"),
+                    onPressed: () => _updateStatus(docId, "rejected"),
                   ),
               ],
             ),
@@ -205,6 +277,45 @@ class _AdminDashboardState extends State<AdminDashboard> {
         backgroundColor: primaryColor,
         foregroundColor: surfaceColor,
         actions: [
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.notifications_outlined),
+                tooltip: 'Notifications',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => NotificationsScreen(departmentFilter: _adminDepartment)
+                    ),
+                  );
+                },
+              ),
+              StreamBuilder<int>(
+                stream: FirebaseFirestore.instance
+                    .collection('notifications')
+                    .where('toUserId', isEqualTo: FirebaseAuth.instance.currentUser?.uid ?? '')
+                    .where('isRead', isEqualTo: false)
+                    .snapshots()
+                    .map((snap) => snap.docs.length),
+                builder: (context, snapshot) {
+                  final count = snapshot.data ?? 0;
+                  if (count == 0) return const SizedBox.shrink();
+                  return Positioned(
+                    right: 8,
+                    top: 8,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
+                      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                      constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                      child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
           IconButton(
             icon: const Icon(Icons.people),
             tooltip: 'Manage Employees',
@@ -214,9 +325,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream:
-            FirebaseFirestore.instance.collection(collectionName).where('academicYearId', isEqualTo: currentYear).snapshots(),
+      body: StreamBuilder<List<Map<String, dynamic>>>(
+        stream: FirestoreService().streamAllLeaves(
+          academicYearId: currentYear,
+          department: _adminDepartment,
+        ),
         builder: (context, snap) {
           if (snap.hasError) {
             return Center(child: Text('Error: ${snap.error}'));
@@ -226,7 +339,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snap.hasData || snap.data!.docs.isEmpty) {
+          final docs = snap.data ?? [];
+
+          if (docs.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -249,22 +364,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
             );
           }
 
-          var docs = snap.data!.docs;
-
           // Data casting and counting
           int total = docs.length;
-          int approved = docs
-              .where((d) =>
-                  (d.data() as Map<String, dynamic>)['status'] == "approved")
-              .length;
-          int rejected = docs
-              .where((d) =>
-                  (d.data() as Map<String, dynamic>)['status'] == "rejected")
-              .length;
-          int pending = docs
-              .where((d) =>
-                  (d.data() as Map<String, dynamic>)['status'] == "pending")
-              .length;
+          int approved = docs.where((d) => d['status']?.toString().toLowerCase() == "approved").length;
+          int rejected = docs.where((d) => d['status']?.toString().toLowerCase() == "rejected").length;
+          int pending = docs.where((d) => d['status']?.toString().toLowerCase() == "pending").length;
 
           return Padding(
             padding: const EdgeInsets.all(12),
@@ -282,10 +386,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 // Summary Cards
                 Row(
                   children: [
-                    _summaryCard("Total", total, Colors.black87),
-                    _summaryCard("Pending", pending, Colors.orange),
-                    _summaryCard("Approved", approved, Colors.green),
-                    _summaryCard("Rejected", rejected, Colors.red),
+                    _summaryCard("Total", total, primaryColor, Icons.folder_open_rounded),
+                    _summaryCard("Pending", pending, Colors.orange, Icons.hourglass_empty_rounded),
+                    _summaryCard("Approved", approved, Colors.green, Icons.verified_rounded),
+                    _summaryCard("Rejected", rejected, Colors.red, Icons.block_flipped),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -321,9 +425,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   child: ListView.builder(
                     itemCount: docs.length,
                     itemBuilder: (context, index) {
-                      final doc = docs[index];
-                      final data = doc.data() as Map<String, dynamic>;
-                      final status = data['status'] ?? 'pending';
+                      final data = docs[index];
+                      final status = data['status']?.toString().toLowerCase() ?? 'pending';
 
                       Color statusColor;
                       switch (status) {
@@ -339,7 +442,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
                       // Only show pending requests in the main list
                       if (status == 'pending') {
-                        return _buildLeaveTile(doc, data, statusColor);
+                        return _buildLeaveTile(data, statusColor);
                       } else {
                         // Return an empty SizedBox for non-pending items (optional filter)
                         return const SizedBox.shrink();

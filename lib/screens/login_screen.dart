@@ -21,8 +21,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   bool _showPassword = false;
 
-  // Premium Palette
-  static const Color primaryBlue = Color(0xFF2563EB); // Blue-600
+  // Premium Palette (Unified KEC Navy)
+  static const Color primaryBlue = Color(0xFF001C3D); // KEC Navy
   static const Color darkText = Color(0xFF1E293B); // Slate-800
   static const Color mutedText = Color(0xFF64748B); // Slate-500
   static const Color inputFill = Color(0xFFF1F5F9); // Slate-100
@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (user == null) throw "Login failed.";
     
     // Auth Guard in main.dart handles startup, but for manual login:
-    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get().timeout(const Duration(seconds: 10));
     
     if (!user.emailVerified) {
       await FirebaseAuth.instance.signOut();
@@ -132,14 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
           return Container(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  Color(0xFFEFF6FF), // Blue-50
-                  Colors.white,
-                ],
-              ),
+              color: Colors.white,
             ),
             child: Center(
               child: SingleChildScrollView(
@@ -160,15 +153,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32), // Reduced horizontal padding
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          boxShadow: [
-                            BoxShadow(
-                              color: primaryBlue.withOpacity(0.08),
-                              blurRadius: 40,
-                              offset: const Offset(0, 16),
-                            ),
-                          ],
-                          border: Border.all(color: Colors.white, width: 2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Form(
                           key: _formKey,

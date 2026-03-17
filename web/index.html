@@ -43,10 +43,10 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background-color: #F8FAFC;
+      background: linear-gradient(to bottom, #F4F6FA, #E8EDF6);
       z-index: 9999;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      transition: opacity 0.4s ease-out;
+      transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .loading-spinner {
@@ -64,68 +64,323 @@
         transform: rotate(360deg);
       }
     }
+
+    /* ✨ Smart Update Overlay (Premium Design) */
+    #pwa-update-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      text-align: center;
+      padding: 24px;
+    }
+
+    #pwa-update-overlay.show {
+      display: flex;
+    }
+
+    .update-card {
+      background: white;
+      padding: 40px;
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+      max-width: 400px;
+      width: 100%;
+    }
+
+    .update-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+
+    .update-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #1E293B;
+      margin-bottom: 12px;
+    }
+
+    .update-message {
+      color: #64748B;
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    #update-now-button {
+      background: #7C3AED;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    #update-now-button:hover {
+      background: #6D28D9;
+      transform: translateY(-2px);
+    }
+        /* ✨ Smart Recovery Styles */
+    #debug-console {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.85);
+      color: #00FF00;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      padding: 15px;
+      border-radius: 8px;
+      z-index: 10001;
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+    }
+
+    #debug-console.show {
+      display: block;
+    }
   </style>
 </head>
 
 <body>
   <div id="flutter-splash" class="loading-container">
-    <div style="font-size: 24px; font-weight: bold; color: #1E293B;">LeaveX</div>
+    <img src="assets/assets/logo.png" style="width: 200px; height: 200px; margin-bottom: 24px; object-fit: contain;" onerror="this.src='favicon.png'" />
+    <div style="font-size: 32px; font-weight: 800; color: #1E293B; letter-spacing: -0.5px;">LeaveX</div>
+    <div style="font-size: 14px; color: #64748B; margin-top: 8px; margin-bottom: 32px; font-weight: 500;">Work • Balance • Progress</div>
     <div class="loading-spinner"></div>
   </div>
 
-  <script src="flutter_bootstrap.js" async></script>
+  <!-- Debug Console for Hang Tracking -->
+  <div id="debug-console">
+    <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #00FF00;">🔧 Boot Debugger</div>
+    <div id="debug-logs"></div>
+    <div style="margin-top: 10px; font-size: 10px; color: #AAA;">App stuck? Please share these logs.</div>
+  </div>
+
+  <div id="pwa-update-overlay">
+    <div class="update-card">
+      <div class="update-icon">🚀</div>
+      <div class="update-title">Update Available</div>
+      <div class="update-message">A fresh version of LeaveX is ready with important improvements.</div>
+      <button id="update-now-button" onclick="window.forceUpdateApp()">Update Now</button>
+    </div>
+  </div>
+
+  <script src="flutter_bootstrap.js?v=20260310v2" async></script>
 
   <script>
-    // Fades out splash once Flutter starts rendering
-    window.addEventListener('flutter-first-frame', function () {
-      var splash = document.getElementById('flutter-splash');
-      if (splash) {
-        splash.style.opacity = '0';
-        setTimeout(function () { splash.style.display = 'none'; }, 400);
+    // 🛡️ Consolidated Initialization & PWA Logic
+    (function() {
+      const logs = [];
+      function addLog(msg) {
+        const timestamp = new Date().toLocaleTimeString();
+        const line = `[${timestamp}] ${msg}`;
+        console.log(line);
+        logs.push(line);
+        const logEl = document.getElementById('debug-logs');
+        if (logEl) {
+          const div = document.createElement('div');
+          div.textContent = line;
+          logEl.appendChild(div);
+          logEl.scrollTop = logEl.scrollHeight;
+        }
       }
-    });
 
-    // Safety fallback: ensure splash is removed after 15 seconds
-    setTimeout(function () {
-      var splash = document.getElementById('flutter-splash');
-      if (splash) {
-        splash.style.display = 'none';
+      addLog("🚀 [BOOT] LeaveX Initializing...");
+      
+      // 1. Splash Management
+      var splashRemoved = false;
+      function removeSplash(source) {
+        if (splashRemoved) return;
+        splashRemoved = true;
+        addLog("🌊 [BOOT] Hiding Splash via: " + source);
+        var splash = document.getElementById('flutter-splash');
+        if (splash) {
+          splash.style.opacity = '0';
+          setTimeout(function() { 
+            if (splash.parentNode) splash.parentNode.removeChild(splash); 
+            addLog("✅ [BOOT] Splash DOM removed");
+            // Hide debug console if it was showing
+            document.getElementById('debug-console').classList.remove('show');
+          }, 400);
+        }
       }
-    }, 15000);
-    // PWA Auto-Update Mechanism
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function () {
-        navigator.serviceWorker.register('flutter_service_worker.js?v=' + new Date().getTime()).then(function (registration) {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
 
-          // Check for updates on every page load
-          registration.update();
+      window.addEventListener('flutter-first-frame', function() { removeSplash('flutter-first-frame'); });
+      
+      // Silent Debugger: Log but don't show automatically unless extreme
+      setTimeout(function() {
+        if (!splashRemoved) {
+          addLog("🕒 [WARNING] App taking long to load...");
+          // We won't force show the console here anymore for a cleaner "real-time" feel
+        }
+      }, 10000);
 
-          registration.addEventListener('updatefound', function () {
-            const newWorker = registration.installing;
-            newWorker.addEventListener('statechange', function () {
-              // If the new worker is installed and a previous worker exists...
-              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                console.log('New update available. Reloading...');
-                // Automatically reload to apply the new update
-                window.location.reload();
+      // Timeout fallback for splash removal
+      setTimeout(function() { removeSplash('timeout-fallback'); }, 15000);
+
+      // 🔥 HARD RESET FALLBACK: If still showing splash after 25 seconds
+      setTimeout(function() {
+        if (!splashRemoved) {
+          addLog("🚨 [CRITICAL] APP HANG! Triggering Recovery...");
+          if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+              addLog("🧹 [BOOT] Unregistering " + registrations.length + " Service Workers...");
+              for (let registration of registrations) { registration.unregister(); }
+              localStorage.clear();
+              sessionStorage.clear();
+              addLog("🔄 [BOOT] Clearing Cache & Reloading...");
+              window.location.reload(true);
+            });
+          } else {
+            window.location.reload(true);
+          }
+        }
+      }, 25000);
+
+      // 2. Mandatory Update Detection
+      let swRegistration;
+      let refreshing = false;
+
+      function showUpdateOverlay() {
+        addLog("✨ [BOOT] Showing Mandatory Update Overlay");
+        document.getElementById('pwa-update-overlay').classList.add('show');
+      }
+
+      window.forceUpdateApp = function() {
+        addLog("♻️ [BOOT] Forcing App Update...");
+        const btn = document.getElementById('update-now-button');
+        if (btn) { btn.disabled = true; btn.innerText = 'Updating...'; }
+        
+        // Finalize the version update in storage only now
+        fetch('version.json?v=' + Date.now()).then(r => r.json()).then(data => {
+            localStorage.setItem('app-version', data.version);
+            addLog("✅ [BOOT] Version updated in storage to " + data.version);
+            if (swRegistration && swRegistration.waiting) {
+              swRegistration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            } else {
+              window.location.reload(true);
+            }
+        }).catch(() => {
+            window.location.reload(true);
+        });
+      };
+
+      async function checkVersion() {
+        addLog("📡 [BOOT] Checking server version...");
+        try {
+          const response = await fetch('version.json?v=' + Date.now(), {
+            cache: 'no-store',
+            headers: { 'pragma': 'no-cache', 'cache-control': 'no-cache' }
+          });
+          
+          if (!response.ok) {
+            addLog("⚠️ [BOOT] Version check returned: " + response.status);
+            return;
+          }
+
+          const contentType = response.headers.get('content-type');
+          if (!contentType || !contentType.includes('application/json')) {
+            addLog("⚠️ [BOOT] Invalid content-type for version.json");
+            return;
+          }
+
+          const data = await response.json();
+          const latestVersion = data.version;
+          const storedVersion = localStorage.getItem('app-version');
+
+          if (storedVersion && storedVersion !== latestVersion) {
+            addLog("🚨 [CRITICAL] Version Mismatch! Forcing Hard Refresh...");
+            localStorage.setItem('app-version', latestVersion);
+            
+            // Unregister SWs and clear cache
+            if ('serviceWorker' in navigator) {
+              const regs = await navigator.serviceWorker.getRegistrations();
+              for (let reg of regs) { await reg.unregister(); }
+            }
+            
+            // Clear cache and hard reload
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              for (let key of keys) { await caches.delete(key); }
+            }
+            
+            window.location.reload(true);
+            return;
+          } else if (!storedVersion) {
+            localStorage.setItem('app-version', latestVersion);
+            addLog("✅ [BOOT] Version set to " + latestVersion);
+          } else {
+            addLog("✅ [BOOT] App is up to date");
+          }
+        } catch (e) { addLog("⚠️ [BOOT] Version check error: " + e.message); }
+      }
+
+      // 3. Modern Flutter Bootstrapping
+      window.addEventListener('load', function(ev) {
+        addLog("📦 [BOOT] Window Loaded");
+        _flutter.loader.load({
+          serviceWorkerSettings: {
+            serviceWorkerVersion: {{flutter_service_worker_version}},
+          },
+          onEntrypointLoaded: function(engineInitializer) {
+            addLog("⚙️ [BOOT] Entrypoint Ready");
+            engineInitializer.initializeEngine()
+              .then(function(appRunner) {
+                addLog("⚙️ [BOOT] Engine Initialized");
+                return appRunner.runApp();
+              })
+              .then(function() {
+                addLog("🚀 [BOOT] App Running");
+                setTimeout(() => removeSplash('run-app-heartbeat'), 1000);
+              });
+          }
+        }).then(function(reg) {
+          swRegistration = reg;
+          addLog('✅ [BOOT] Bootstrap Complete');
+          
+          if (reg) {
+            reg.addEventListener('updatefound', () => {
+              addLog("🔍 [BOOT] SW Update detected...");
+              const installingWorker = reg.installing;
+              if (installingWorker) {
+                installingWorker.addEventListener('statechange', () => {
+                  addLog("ℹ️ [BOOT] SW State: " + installingWorker.state);
+                  if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                    addLog("♻️ [BOOT] New SW ready, will apply on next load");
+                  }
+                });
               }
             });
-          });
-        }, function (err) {
-          console.log('ServiceWorker registration failed: ', err);
-        });
-      });
+          }
 
-      // Handle the case where the SW tells the client to reload
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', function () {
-        if (!refreshing) {
-          refreshing = true;
-          window.location.reload();
+          checkVersion();
+          setInterval(checkVersion, 1000 * 60 * 15);
+        }).catch(err => addLog("❌ [BOOT] Failure: " + err));
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.addEventListener('controllerchange', () => {
+             if (!refreshing) { refreshing = true; addLog("🔄 [BOOT] Controller changed, reloading..."); window.location.reload(); }
+          });
         }
       });
-    }
+    })();
   </script>
 </body>
 

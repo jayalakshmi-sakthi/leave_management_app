@@ -24,13 +24,9 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
 
   // --- Soulful Palette ---
   // --- Soulful Palette ---
-  static const Color primaryBlue = Color(0xFF4F46E5); // Indigo 500
-  static const Color accentIndigo = Color(0xFF3730A3); // Indigo 800
-  // static const Color scaffoldBg = Color(0xFFF8FAFC); // Use Theme
-  // static const Color textMain = Color(0xFF0F172A); // Use Theme
-  // static const Color textMuted = Color(0xFF64748B); // Use Theme
-  // static const Color cardSurface = Colors.white; // Use Theme
-  static const Color textMain = Color(0xFF0F172A);
+  static const Color primaryNavy = Color(0xFF001C3D); // KEC Navy
+  static const Color accentNavy = Color(0xFF003366);
+  static const Color textMain = Color(0xFF1E293B);
   static const Color textMuted = Color(0xFF64748B);
 
   String? _academicYear;
@@ -77,11 +73,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [primaryBlue, accentIndigo],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: primaryNavy,
           ),
         ),
         title: const Text("My Leaves",
@@ -195,8 +187,8 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                  color: Colors.purple.withOpacity(0.1), borderRadius: BorderRadius.circular(14)),
-              child: const Icon(Icons.star_rounded, color: Colors.purple, size: 24)),
+                  color: primaryNavy.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.star_rounded, color: primaryNavy, size: 24)),
           title: Text('Comp-Off Request',
               style: TextStyle(
                   fontWeight: FontWeight.w800, fontSize: 15, color: Theme.of(context).textTheme.titleMedium?.color)),
@@ -313,19 +305,12 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
 
   BoxDecoration _neatCard({bool hasBorder = false}) {
      final theme = Theme.of(context);
-     final isDark = theme.brightness == Brightness.dark;
      return BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(12),
         border: hasBorder
-            ? Border.all(color: isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFF1F5F9), width: 1.5)
+            ? Border.all(color: const Color(0xFFE2E8F0), width: 1)
             : null,
-        boxShadow: [
-          BoxShadow(
-              color: isDark ? Colors.black.withOpacity(0.2) : const Color(0xFF0F172A).withOpacity(0.04),
-              blurRadius: 20,
-              offset: const Offset(0, 8))
-        ],
       );
   }
   Widget _buildCalendarView(List<Map<String, dynamic>> leaves) {
@@ -396,9 +381,9 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
           rightChevronIcon: Icon(Icons.chevron_right, color: primaryTextColor),
         ),
         calendarStyle: CalendarStyle(
-           todayDecoration: BoxDecoration(color: primaryBlue.withOpacity(0.1), shape: BoxShape.circle),
-           todayTextStyle: const TextStyle(color: primaryBlue, fontWeight: FontWeight.bold),
-           selectedDecoration: const BoxDecoration(color: primaryBlue, shape: BoxShape.circle),
+           todayDecoration: BoxDecoration(color: primaryNavy.withOpacity(0.1), shape: BoxShape.circle),
+           todayTextStyle: const TextStyle(color: primaryNavy, fontWeight: FontWeight.bold),
+           selectedDecoration: const BoxDecoration(color: primaryNavy, shape: BoxShape.circle),
            markerDecoration: const BoxDecoration(color: Colors.transparent), 
            outsideDaysVisible: false,
            weekendTextStyle: TextStyle(color: weekendColor, fontWeight: FontWeight.w500), 
@@ -472,7 +457,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
             final isCompOff = l['activityType'] == 'comp_off';
             final title = isCompOff ? "Comp-Off Earn" : Helpers.getLeaveName(l['leaveType']);
             final icon = isCompOff ? Icons.stars_rounded : Helpers.getLeaveIcon(l['leaveType']);
-            final color = isCompOff ? Colors.purple : Helpers.getLeaveColor(l['leaveType']);
+            final color = isCompOff ? const Color(0xFF8B5CF6) : Helpers.getLeaveColor(l['leaveType']);
 
             return ListTile(
               leading: Icon(icon, color: color),
@@ -513,8 +498,11 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
       final snapshot = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
       final userData = snapshot.data();
 
+      final userDept = userData?['department'] ?? 'General';
       final leaveSnap = await FirebaseFirestore.instance
           .collection("leaveRequests")
+          .doc(userDept)
+          .collection('records')
           .where('userId', isEqualTo: user.uid)
           .where('academicYearId', isEqualTo: _academicYear)
           .get();
@@ -525,8 +513,6 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("No records for this year")));
         return;
       }
-
-      final userDept = userData?['department'] ?? 'General';
       final leaveTypes = await _fs.getLeaveTypes(department: userDept);
       
       // Add Comp-Off
@@ -576,7 +562,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
           height: 100,
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
       );

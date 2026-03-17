@@ -90,7 +90,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       body: _userDept == null 
           ? const Center(child: CircularProgressIndicator())
           : StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _firestoreService.streamAllLeaves(department: _userDept),
+              stream: _firestoreService.streamAllLeaves(department: _userDept!),
               builder: (context, snapshot) {
                 if (snapshot.hasData) {
                   _events = _groupLeaves(snapshot.data!);

@@ -59,16 +59,16 @@ class Constants {
   static const String statusRejected = 'Rejected';
   static const String statusRecorded = 'Recorded';
 
-  // --- 9. Colors (Soulful & Institutional) ---
-  static const Color colorStatusPending = Color(0xFFF59E0B); // Soulful Amber
-  static const Color colorStatusApproved = Color(0xFF10B981); // Soulful Emerald
-  static const Color colorStatusRejected = Color(0xFFEF4444); // Soulful Red
-  static const Color colorStatusRecorded = Color(0xFF64748B); // Slate
+  // --- 9. Colors (Consistent with Admin Panel) ---
+  static const Color colorStatusPending = Color(0xFFF59E0B); // Amber 500
+  static const Color colorStatusApproved = Color(0xFF00A389); // Teal (Admin Match)
+  static const Color colorStatusRejected = Color(0xFFEF4444); // Red 500
+  static const Color colorStatusRecorded = Color(0xFF64748B); // Slate 500
 
-  // --- 10. Leave Type Colors (Integrity) ---
-  static const Color colorCL = Color(0xFF4F46E5); // Soulful Indigo
-  static const Color colorVL = Color(0xFF4ADE80); // Light Green
-  static const Color colorCOMP = Color(0xFF8B5CF6); // Soulful Violet
-  static const Color colorSL = Color(0xFFF43F5E); // Soulful Rose
-  static const Color colorOD = Color(0xFF0EA5E9); // Soulful Sky Blue
+  // --- 10. Leave Type Colors (Consistent) ---
+  static const Color colorCL = Color(0xFF4F46E5); // Indigo 600
+  static const Color colorVL = Color(0xFF10B981); // Emerald 500
+  static const Color colorCOMP = Color(0xFF8B5CF6); // Violet 500
+  static const Color colorSL = Color(0xFFEF4444); // Red 500
+  static const Color colorOD = Color(0xFF0EA5E9); // Sky 500
 }

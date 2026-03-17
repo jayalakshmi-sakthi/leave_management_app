@@ -6,20 +6,20 @@ import 'package:google_fonts/google_fonts.dart';
 // --- App Colors ---
 
 class AppColors {
-  // Deep Indigo (Primary) - Used for major actions and headers
-  static const primary = Color(0xFF283593); // Indigo 700
-  // Teal (Accent/Secondary) - Used for FAB, progress, secondary actions
-  static const accent = Color(0xFF009688); // Teal 500
+  // KEC Navy (Primary) - Used for major actions and headers
+  static const primary = Color(0xFF001C3D); // KEC Navy
+  // Secondary Navy - For subtle accents
+  static const accent = Color(0xFF003366); // Lighter Navy
   // Light off-white for cards/surfaces
-  static const surface = Color(0xFFF6F8FB);
+  static const surface = Color(0xFFF8FAFC); // Slate 50
   // Slightly darker off-white for main background
-  static const bg = Color(0xFFF3F6FB);
+  static const bg = Color(0xFFF8FAFC); // Slate 50
   // Dark text for titles and main body
-  static const textPrimary = Color(0xFF1F2A44);
+  static const textPrimary = Color(0xFF1E293B); // Slate 800
   // Grey text for hints, captions, and secondary info
-  static const textSecondary = Color(0xFF6B7280);
+  static const textSecondary = Color(0xFF64748B); // Slate 500
   // Red for errors, rejection
-  static const danger = Color(0xFFE53935); // Red 600
+  static const danger = Color(0xFFEF4444); // Red 500
 }
 
 // --- Theme Builder Function ---
@@ -59,7 +59,7 @@ ThemeData buildAppTheme() {
     // 3. AppBar
     appBarTheme: const AppBarTheme(
       centerTitle: false,
-      elevation: 1,
+      elevation: 0,
       backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
     ),
@@ -85,9 +85,9 @@ ThemeData buildAppTheme() {
 
     // 6. Floating Action Button
     floatingActionButtonTheme: const FloatingActionButtonThemeData(
-      backgroundColor: AppColors.accent,
+      backgroundColor: AppColors.primary,
       foregroundColor: Colors.white,
-      elevation: 4,
+      elevation: 2,
     ),
 
     // 7. Input Fields
@@ -121,11 +121,12 @@ ThemeData buildAppTheme() {
 
     // 8. Cards
     cardTheme: CardTheme(
-      color: AppColors.surface,
-      elevation: 3,
+      color: Colors.white,
+      elevation: 0,
       margin: const EdgeInsets.symmetric(vertical: 8),
-      shape: const RoundedRectangleBorder(
-        borderRadius: cardBorderRadius, // Use defined const
+      shape: RoundedRectangleBorder(
+        borderRadius: cardBorderRadius,
+        side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
       ),
     ),
 

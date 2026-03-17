@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart'; // ✅ Added specific import
-import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ Added specific import
+import 'package:firebase_auth/firebase_auth.dart'; 
+import 'package:cloud_firestore/cloud_firestore.dart'; 
 import 'utils/theme_controller.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
@@ -60,31 +62,60 @@ class LeaveDetailArguments {
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
-  print("🔥 DART ENTRY POINT REACHED");
+  print("🔥 [DART] Entry point reached");
   WidgetsFlutterBinding.ensureInitialized();
+  print("🔥 [DART] Widgets Binding Initialized");
+
+  // 🛡️ Bulletproof Splash Removal Fallback
+  if (kIsWeb) {
+    Timer(const Duration(seconds: 4), () {
+      print("🛡️ [DART] Emergency Splash Removal Triggered (Stubbed for Web)");
+      // Note: dart:html cannot be imported safely in a cross-platform app
+      // without conditional imports. We use index.html CSS for splash removal usually.
+    });
+  }
 
   if (!kIsTest) {
-    debugPrint("🚀 Starting App Initialization...");
+    debugPrint("🚀 [DART] Starting Firebase Init...");
     try {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
-      );
+      ).timeout(const Duration(seconds: 10), onTimeout: () {
+        print("❌ [DART] Firebase Init Timed Out (10s)");
+        throw TimeoutException("Firebase initialization timed out");
+      });
+      print("✅ [DART] Firebase Initialized");
       
-      // ⚡ Enable Firestore offline cache (10 MB is default, unlimited prevents reloading old data)
-      FirebaseFirestore.instance.settings = const Settings(
-        persistenceEnabled: true,
-        cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
-      );
-      
-      debugPrint("✅ Firebase Initialized");
+      // ⚡ Enable Firestore offline cache safely (Persistence is default on some platforms)
+      if (!kIsWeb) {
+        try {
+          print("🚀 [DART] Enabling Firestore Persistence...");
+          FirebaseFirestore.instance.settings = const Settings(
+            persistenceEnabled: true,
+            cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+          );
+          debugPrint("✅ [DART] Firestore Persistence Enabled");
+        } catch (e) {
+          debugPrint("⚠️ [DART] Firestore Persistence Failed: $e");
+        }
+      } else {
+        print("ℹ️ [DART] Firestore Web: Using default persistence (IndexedDB)");
+      }
     } catch (e) {
-      debugPrint("❌ Firebase Init Failed: $e");
+      debugPrint("❌ [DART] Firebase Critical Failure: $e");
     }
     
     // Initialize notification service (Non-blocking)
-    Future.microtask(() => NotificationService().init().catchError((e) => debugPrint("Notification Service Init Failed: $e")));
+    print("🚀 [DART] Starting Notification Service Init...");
+    NotificationService().init()
+      .then((_) => print("✅ [DART] Notification Service Ready"))
+      .catchError((e) {
+        print("⚠️ [DART] Notification Service Failed: $e");
+        return null;
+      });
   }
 
+  print("🏃 [DART] Calling runApp()");
   runApp(const LeaveXApp());
 }
 
@@ -108,11 +139,27 @@ class LeaveXApp extends StatelessWidget {
           // -------------------------
           theme: ThemeData(
             useMaterial3: true,
-            colorSchemeSeed: const Color(0xFF7C3AED),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFF001C3D),
+              primary: const Color(0xFF001C3D),
+              secondary: const Color(0xFF003366),
+              brightness: Brightness.light,
+            ),
             scaffoldBackgroundColor: const Color(0xFFF8FAFC),
             appBarTheme: const AppBarTheme(
-              backgroundColor: Color(0xFF7C3AED),
+              elevation: 0,
+              centerTitle: false,
+              backgroundColor: Color(0xFF001C3D),
               foregroundColor: Colors.white,
+              iconTheme: IconThemeData(color: Colors.white),
+            ),
+            cardTheme: CardTheme(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(color: Color(0xFFE2E8F0), width: 1),
+              ),
+              color: Colors.white,
             ),
             // 🅰️ Global Typography Polish
             textTheme: const TextTheme(
@@ -121,8 +168,8 @@ class LeaveXApp extends StatelessWidget {
               headlineMedium: TextStyle(fontWeight: FontWeight.w700),
               titleLarge: TextStyle(fontWeight: FontWeight.w700, fontSize: 20),
               bodyLarge: TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-              bodyMedium: TextStyle(fontWeight: FontWeight.w400, fontSize: 14), // Readable base
-              labelLarge: TextStyle(fontWeight: FontWeight.w600, fontSize: 14), // Button text
+              bodyMedium: TextStyle(fontWeight: FontWeight.w400, fontSize: 14),
+              labelLarge: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
             ),
           ),
           darkTheme: ThemeData(
@@ -150,71 +197,60 @@ class LeaveXApp extends StatelessWidget {
           themeMode: mode,
 
           // -------------------------
-          // AUTH GUARD (HANDLE STARTUP REDIRECTION)
+          // 🚀 CONSOLIDATED STARTUP GATE
           // -------------------------
           home: StreamBuilder<User?>(
             stream: FirebaseAuth.instance.authStateChanges(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
+            builder: (context, authSnapshot) {
+              // 1️⃣ Initial Auth Wait
+              if (authSnapshot.connectionState == ConnectionState.waiting) {
                 return const SplashScreen();
               }
-              
-              final user = snapshot.data;
+
+              final user = authSnapshot.data;
+
+              // 2️⃣ Not Logged In -> Login
               if (user == null) {
                 return const LoginScreen();
               }
 
-              // 🔄 RELOAD USER TO GET FRESH EMAIL VERIFICATION STATUS
-              return FutureBuilder(
-                future: user.reload().onError((_, __) {}), // Ignore errors
-                builder: (context, reloadSnapshot) {
-                  if (reloadSnapshot.connectionState == ConnectionState.waiting) {
+              // 3️⃣ Logged In -> Single Combined Fetch (Data + Verification)
+              return FutureBuilder<Map<String, dynamic>?>(
+                future: _fetchStartupData(user),
+                builder: (context, dataSnapshot) {
+                  // While fetching, stay on the SAME SplashScreen
+                  if (dataSnapshot.connectionState == ConnectionState.waiting) {
                     return const SplashScreen();
                   }
-                  
-                  final refreshedUser = FirebaseAuth.instance.currentUser;
-                  // If reload failed or user somehow null, fallback
-                  if (refreshedUser == null) return const LoginScreen();
 
-                  // 🚫 MANDATORY CHECK 1: EMAIL VERIFICATION
-                  if (!refreshedUser.emailVerified) {
-                     return const LoginScreen(); 
+                  // Handle critical fetch errors (e.g. no internet)
+                  if (dataSnapshot.hasError || dataSnapshot.data == null) {
+                    return const LoginScreen(); // Fallback to login if data is missing
                   }
 
-                  // 🔍 CHECK PROFILE & APPROVAL STATUS
-                  return FutureBuilder<DocumentSnapshot>(
-                    future: FirebaseFirestore.instance.collection('users').doc(refreshedUser.uid).get(),
-                    builder: (context, userSnapshot) {
-                      if (userSnapshot.connectionState == ConnectionState.waiting) {
-                        return const SplashScreen();
-                      }
+                  final data = dataSnapshot.data!;
 
-                      if (userSnapshot.hasData && userSnapshot.data!.exists) {
-                        final data = userSnapshot.data!.data() as Map<String, dynamic>;
-                        
-                        // 1️⃣ CHECK PROFILE COMPLETENESS
-                        final bool hasProfile = (data['designation'] != null && data['designation'].toString().isNotEmpty) &&
-                                                (data['profilePicUrl'] != null && data['profilePicUrl'].toString().isNotEmpty);
-                        
-                        if (!hasProfile) {
-                           return const ProfileSetupScreen();
-                        }
+                  // 🛡️ Guard 1: Email Verification
+                  if (user.emailVerified == false) {
+                     return const LoginScreen();
+                  }
 
-                        // 2️⃣ CHECK APPROVAL
-                        final bool isApproved = data['approved'] == true;
+                  // 🛡️ Guard 2: Profile Completeness
+                  final bool hasProfile = (data['designation'] != null && data['designation'].toString().isNotEmpty) &&
+                                          (data['profilePicUrl'] != null && data['profilePicUrl'].toString().isNotEmpty);
+                  
+                  if (!hasProfile) {
+                    return const ProfileSetupScreen();
+                  }
 
-                        if (!isApproved) {
-                          return const PendingApprovalScreen();
-                        }
-                        
-                        return const HomeScreen();
-                      }
-                      
-                      // Fallback: If doc missing, maybe fresh Google login? Go to Setup.
-                      return const ProfileSetupScreen(); 
-                    },
-                  );
-                }
+                  // 🛡️ Guard 3: Approval Status
+                  if (data['approved'] != true) {
+                    return const PendingApprovalScreen();
+                  }
+
+                  // 🎉 All Clear -> Home
+                  return const HomeScreen();
+                },
               );
             },
           ),
@@ -287,5 +323,30 @@ class LeaveXApp extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+/// 🚀 Combined Startup Data Fetch
+Future<Map<String, dynamic>?> _fetchStartupData(User user) async {
+  try {
+    // 1. Fetch user doc with timeout
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get()
+        .timeout(const Duration(seconds: 8));
+
+    if (!doc.exists) return null;
+
+    final data = doc.data() as Map<String, dynamic>;
+
+    // 2. Proactively reload user to get latest emailVerified status
+    // (This helps if they just verified but haven't re-logged)
+    await user.reload();
+    
+    return data;
+  } catch (e) {
+    debugPrint("❌ Startup Fetch Error: $e");
+    return null;
   }
 }

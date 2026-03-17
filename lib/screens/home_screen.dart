@@ -45,13 +45,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Map<String, Map<String, dynamic>> _styleCache = {};
 
   // --- Soulful Palette ---
-  static const Color primaryPurple = Color(0xFF7C3AED); // Violet 600
-  static const Color accentPurple = Color(0xFF5B21B6); // Violet 800
-  // static const Color scaffoldBg = Color(0xFFF8FAFC); // Use Theme
-  // static const Color textMain = Color(0xFF0F172A); // Use Theme
-  // static const Color textMuted = Color(0xFF64748B); // Use Theme
-  // static const Color cardSurface = Colors.white; // Use Theme
-  static const Color textMain = Color(0xFF0F172A);
+  static const Color primaryNavy = Color(0xFF001C3D); // KEC Navy
+  static const Color accentNavy = Color(0xFF003366);
+  static const Color textMain = Color(0xFF1E293B);
   static const Color textMuted = Color(0xFF64748B);
   static const Color cardSurface = Colors.white;
   final ScrollController _scrollController = ScrollController();
@@ -147,6 +143,8 @@ class _HomeScreenState extends State<HomeScreen> {
       // 3. Fetch User Activity (Leaves & Comps)
       final leaveQuery = await _fire
           .collection("leaveRequests")
+          .doc(userDept)
+          .collection('records')
           .where('userId', isEqualTo: _uid)
           .where('academicYearId', isEqualTo: academicYear)
           // .where('status', isEqualTo: 'Approved') // Removed to include Pending
@@ -155,7 +153,7 @@ class _HomeScreenState extends State<HomeScreen> {
       Map<String, double> usedMap = {};
       for (var doc in leaveQuery.docs) {
         final d = doc.data();
-        if (d['status'] == 'Rejected') continue; // Skip Rejected only
+        if (d['status'] != 'Approved') continue; // Only deduct Approved leaves
 
         final type = d['leaveType'] as String? ?? 'Other';
         final days = (d['numberOfDays'] ?? 0).toDouble();
@@ -168,7 +166,7 @@ class _HomeScreenState extends State<HomeScreen> {
       // 4. Build Balance Map
       Map<String, dynamic> balances = {};
       
-      final colors = [Colors.orange, Colors.green, Colors.purple, Colors.teal, Colors.indigo];
+      final colors = [const Color(0xFF4F46E5), const Color(0xFF10B981), const Color(0xFF8B5CF6), const Color(0xFF003366), const Color(0xFF0EA5E9)];
       int cIdx = 0;
 
       for (var type in typesList) {
@@ -266,15 +264,15 @@ class _HomeScreenState extends State<HomeScreen> {
       for (var d in qSub.docs) totalGranted += safeParse(d.data()['days']);
       for (var d in qRoot.docs) totalGranted += safeParse(d.data()['days']);
 
-      // 3. Fetch Usage (Spent Comp-Offs)
-      // 3. Fetch Usage (Spent Comp-Offs)
-      // Optimized: Query broader scope to use existing (UserId + Year) index, verify in-memory.
+      // 3. Fetch Usage (Spent Comp-Offs) — use department-scoped path
+      final userSnapForComp = await _fire.collection('users').doc(_uid).get();
+      final userDeptForComp = userSnapForComp.data()?['department'] ?? 'General';
       final qUsage = await _fire
           .collection('leaveRequests')
+          .doc(userDeptForComp)
+          .collection('records')
           .where('userId', isEqualTo: _uid)
           .where('academicYearId', isEqualTo: academicYear)
-          // Removed: .where('leaveType', isEqualTo: 'COMP') // Filter in memory
-          // Removed: .where('status', isNotEqualTo: 'Rejected') // Filter in memory
           .get();
 
       double totalUsed = 0.0;
@@ -283,7 +281,7 @@ class _HomeScreenState extends State<HomeScreen> {
         final type = data['leaveType'] as String?;
         final status = data['status'] as String?;
         
-        if (type == 'COMP' && status != 'Rejected') {
+        if (type == 'COMP' && status == 'Approved') {
            totalUsed += safeParse(data['numberOfDays']);
         }
       }
@@ -307,45 +305,124 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- Real-Time Logout Experience ---
   void _showLogoutConfirmation() {
-    HapticFeedback.mediumImpact(); 
+    HapticFeedback.mediumImpact();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(28),
-        decoration: const BoxDecoration(
-          color: cardSurface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        margin: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        decoration: BoxDecoration(
+          color: theme.cardColor,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.4 : 0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            )
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(width: 45, height: 5, decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(10))),
-            const SizedBox(height: 30),
+            // Handle Bar
             Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: Colors.red[50], shape: BoxShape.circle),
-              child: const Icon(Icons.logout_rounded, color: Colors.redAccent, size: 32),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.dividerColor.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            const SizedBox(height: 20),
-            const Text("Sign Out", style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: textMain)),
-            const SizedBox(height: 10),
-            const Text("Are you sure you want to exit LeaveX?", textAlign: TextAlign.center, style: TextStyle(color: textMuted, fontSize: 15)),
-            const SizedBox(height: 35),
+            const SizedBox(height: 32),
+            
+            // Icon Container
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.power_settings_new_rounded,
+                color: Colors.redAccent,
+                size: 40,
+              ),
+            ),
+            const SizedBox(height: 24),
+            
+            // Text
+            Text(
+              "Sign Out",
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "Are you sure you want to end your session?",
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
+              ),
+            ),
+            const SizedBox(height: 40),
+            
+            // Buttons
             Row(
               children: [
-                Expanded(child: TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel", style: TextStyle(color: textMuted, fontWeight: FontWeight.w600)))),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: BorderSide(color: theme.dividerColor),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      "Cancel",
+                      style: TextStyle(
+                        color: theme.textTheme.bodyLarge?.color,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
                 const SizedBox(width: 16),
-                Expanded(child: ElevatedButton(
+                Expanded(
+                  child: ElevatedButton(
                     onPressed: () async {
                       await _auth.signOut();
                       if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/login', (_) => false);
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
-                    child: const Text("Logout", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)))),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text(
+                      "Logout",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 10),
           ],
         ),
       ),
@@ -405,51 +482,62 @@ class _HomeScreenState extends State<HomeScreen> {
 
 
   Widget _buildSliverAppBar() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return SliverAppBar(
-      expandedHeight: 70, 
+      expandedHeight: 80,
       pinned: true,
       elevation: 0,
-      systemOverlayStyle: SystemUiOverlayStyle.light,
-      backgroundColor: primaryPurple,
-      automaticallyImplyLeading: false, 
-      centerTitle: false,
+      systemOverlayStyle: isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+      backgroundColor: primaryNavy,
+      automaticallyImplyLeading: false,
       titleSpacing: 20,
-      title: const Row(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.center,
+      title: Row(
         children: [
-          _PlacementBadgeLogo(size: 32),
-          SizedBox(width: 12),
-          Text(
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const _PlacementBadgeLogo(size: 24),
+          ),
+          const SizedBox(width: 14),
+          const Text(
             "LeaveX",
             style: TextStyle(
               color: Colors.white,
-              fontSize: 22,
+              fontSize: 24,
               fontWeight: FontWeight.w900,
-              letterSpacing: -0.5,
+              letterSpacing: -1,
             ),
           ),
         ],
       ),
       actions: [
-        // 🌓 Night Light Toggle
-        ValueListenableBuilder<ThemeMode>(
-          valueListenable: ThemeController(),
-          builder: (context, mode, child) {
-            final isDark = mode == ThemeMode.dark;
-            return IconButton(
-              icon: Icon(isDark ? Icons.light_mode_rounded : Icons.nightlight_round, color: Colors.white, size: 28),
-              onPressed: () => ThemeController().toggleTheme(),
-              tooltip: isDark ? "Day Mode" : "Night Light",
-            );
-          },
+        // 🌓 Theme Toggle
+        _buildAppBarAction(
+          onTap: () => ThemeController().toggleTheme(),
+          child: ValueListenableBuilder<ThemeMode>(
+            valueListenable: ThemeController(),
+            builder: (context, mode, child) {
+              final isDarkNow = mode == ThemeMode.dark;
+              return Icon(
+                isDarkNow ? Icons.light_mode_rounded : Icons.nightlight_round,
+                color: Colors.white,
+                size: 22,
+              );
+            },
+          ),
         ),
+        
+        // 🔔 Notifications
         Stack(
-          alignment: Alignment.center,
           children: [
-            IconButton(
-              icon: const Icon(Icons.notifications_outlined, color: Colors.white, size: 28),
-              onPressed: () => Navigator.pushNamed(context, '/notifications'),
+            _buildAppBarAction(
+              onTap: () => Navigator.pushNamed(context, '/notifications'),
+              child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
             ),
             StreamBuilder<int>(
               stream: NotificationService().getUnreadCount(_uid),
@@ -457,30 +545,61 @@ class _HomeScreenState extends State<HomeScreen> {
                 final count = snapshot.data ?? 0;
                 if (count == 0) return const SizedBox.shrink();
                 return Positioned(
-                  right: 8, top: 8,
+                  right: 10,
+                  top: 10,
                   child: Container(
                     padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-                    constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
-                    child: Text('$count', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                    decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
+                    constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
+                    child: Text(
+                      '$count',
+                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 );
               },
             ),
           ],
         ),
-        IconButton(
-          icon: const Icon(Icons.power_settings_new, color: Colors.white, size: 28),
-          onPressed: _showLogoutConfirmation,
+
+        // 🚪 Logout
+        _buildAppBarAction(
+          onTap: _showLogoutConfirmation,
+          child: const Icon(Icons.logout_rounded, color: Colors.white, size: 22),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 12),
       ],
     );
   }
 
+  Widget _buildAppBarAction({required VoidCallback onTap, required Widget child}) {
+    return Container(
+      margin: const EdgeInsets.only(right: 8),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              // color: Colors.white.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: child,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildProfileSection() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return SliverPadding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       sliver: SliverToBoxAdapter(
         child: StreamBuilder<UserModel?>(
           stream: FirestoreService().getUserStream(_uid),
@@ -493,39 +612,70 @@ class _HomeScreenState extends State<HomeScreen> {
             final displayPic = user?.profilePicUrl;
 
             return Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [primaryPurple, accentPurple],
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                ),
+                color: theme.cardColor,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: primaryPurple.withOpacity(0.2),
-                    blurRadius: 15,
-                    offset: const Offset(0, 8),
+                    color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   )
                 ],
+                border: Border.all(
+                  color: theme.dividerColor.withOpacity(0.1),
+                ),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 4),
-                  _buildAvatar(displayPic, displayName),
-                  const SizedBox(height: 20),
-                  Text(
-                    "Hi, $displayName", 
-                    style: const TextStyle(
-                      color: Colors.white, 
-                      fontSize: 28, 
-                      fontWeight: FontWeight.w900, 
-                      letterSpacing: -1.0
-                    )
+                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      _buildAvatar(displayPic, displayName),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Hi, $displayName", 
+                              style: theme.textTheme.headlineSmall?.copyWith(
+                                color: isDark ? Colors.white : primaryNavy, 
+                                fontWeight: FontWeight.w900, 
+                                letterSpacing: -0.8
+                              )
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              user?.designation ?? "Faculty Member",
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 10),
-                  _buildIdBadge(displayId),
+                  const SizedBox(height: 28),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withOpacity(0.05) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: IntrinsicHeight(
+                      child: Row(
+                        children: [
+                          Expanded(child: _buildBadgeItem(Icons.badge_rounded, "EMPLOYEE ID", displayId ?? '')),
+                          VerticalDivider(color: theme.dividerColor.withOpacity(0.3), thickness: 1, indent: 4, endIndent: 4),
+                          Expanded(child: _buildBadgeItem(Icons.calendar_today_rounded, "ACADEMIC YEAR", academicYear)),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             );
@@ -535,76 +685,76 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Widget _buildBadgeItem(IconData icon, String label, String value) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: isDark ? Colors.blueAccent : primaryNavy, size: 14),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                color: theme.textTheme.bodySmall?.color?.withOpacity(0.5),
+                fontSize: 9,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w900,
+            fontSize: 14,
+            letterSpacing: 0.2,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildAvatar(String? picUrl, String name) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.white30, width: 2)),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: (isDark ? Colors.blueAccent : primaryNavy).withOpacity(0.2),
+          width: 3,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: (isDark ? Colors.blueAccent : primaryNavy).withOpacity(0.1),
+            blurRadius: 10,
+            spreadRadius: 2,
+          )
+        ],
+      ),
       child: CircleAvatar(
-        radius: 28, 
-        backgroundColor: Colors.white24,
+        radius: 32, 
+        backgroundColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
         backgroundImage: picUrl != null ? NetworkImage(picUrl) : null,
         child: picUrl == null 
             ? Text(
                 name.isNotEmpty ? name[0].toUpperCase() : 'U',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)
+                style: TextStyle(
+                  color: isDark ? Colors.blueAccent : primaryNavy, 
+                  fontWeight: FontWeight.w900, 
+                  fontSize: 24
+                )
               )
             : null,
       ),
-    );
-  }
-
-  Widget _buildLogoutIcon() {
-    return InkWell(
-      onTap: _showLogoutConfirmation,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(15)),
-        child: const Icon(Icons.power_settings_new, color: Colors.white, size: 22),
-      ),
-    );
-  }
-
-  Widget _buildIdBadge(String? id) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.badge_outlined, color: Colors.white, size: 14),
-              const SizedBox(width: 6),
-              Text(
-                "ID: ${id ?? ''}",
-                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.calendar_today_outlined, color: Colors.white70, size: 12),
-              const SizedBox(width: 6),
-              Text(
-                "AY: $academicYear",
-                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 
@@ -621,76 +771,77 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildStatTile(String label, double val, Color color, IconData icon, String subLabel) {
-    // 🌍 Responsive scaling for Web vs Mobile
-    final bool isWide = MediaQuery.of(context).size.width > 600;
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: EdgeInsets.symmetric(vertical: isWide ? 20 : 14, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.05),
+        color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-        gradient: LinearGradient(
-          colors: [
-            color.withOpacity(0.1),
-            color.withOpacity(0.02),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
         boxShadow: [
-           BoxShadow(
-             color: color.withOpacity(0.05), 
-             blurRadius: 10, 
-             offset: const Offset(0, 4)
-           )
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.3 : 0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          )
         ],
+        border: Border.all(
+          color: theme.dividerColor.withOpacity(0.05),
+        ),
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: EdgeInsets.all(isWide ? 10 : 8),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1), 
+              color: color.withOpacity(0.12),
               shape: BoxShape.circle,
-              border: Border.all(color: color.withOpacity(0.2), width: 1),
             ),
-            child: Icon(icon, color: color, size: isWide ? 28 : 22),
+            child: Icon(icon, color: color, size: 28),
           ),
-          SizedBox(height: isWide ? 12 : 8),
+          const SizedBox(height: 16),
           Text(
             label, 
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: theme.textTheme.bodySmall?.color, 
-              fontWeight: FontWeight.w800, 
-              fontSize: isWide ? 15 : 12 
-            )
-          ),
-          SizedBox(height: isWide ? 10 : 6),
-          FittedBox(
-            child: Text(
-              val.toStringAsFixed(1), 
-              style: TextStyle(
-                fontSize: isWide ? 42 : 30, 
-                fontWeight: FontWeight.w900, 
-                color: color, 
-                letterSpacing: -1
-              )
+            style: theme.textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+              letterSpacing: 0.2,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            val.toStringAsFixed(val % 1 == 0 ? 0 : 1).replaceAll('.0', ''), 
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              color: isDark ? Colors.white : primaryNavy,
+              letterSpacing: -1,
+            ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 6),
-          Text(
-            subLabel, 
-            style: TextStyle(
-              fontSize: isWide ? 12 : 10, 
-              color: color.withOpacity(0.7), 
-              fontWeight: FontWeight.w800, 
-              letterSpacing: 1.2
-            )
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              subLabel, 
+              style: TextStyle(
+                fontSize: 9, 
+                color: color, 
+                fontWeight: FontWeight.w900, 
+                letterSpacing: 0.8
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
         ],
       ),
@@ -708,9 +859,9 @@ class _HomeScreenState extends State<HomeScreen> {
             // Row 1: Apply & Earn Comp
             Row(
               children: [
-                Expanded(child: _buildActionTile(Icons.add_circle_outline, "Apply Leave", () => Navigator.pushNamed(context, '/apply'), primaryPurple)),
+                Expanded(child: _buildActionTile(Icons.add_circle_outline, "Apply Leave", () => Navigator.pushNamed(context, '/apply'), const Color(0xFF001C3D))),
                 const SizedBox(width: 14),
-                Expanded(child: _buildActionTile(Icons.star, "Earn Comp", () => Navigator.pushNamed(context, '/request-compoff'), Colors.orange)),
+                Expanded(child: _buildActionTile(Icons.star_rounded, "Earn Comp", () => Navigator.pushNamed(context, '/request-compoff'), const Color(0xFF003366))),
               ],
             ),
             const SizedBox(height: 14),
@@ -718,9 +869,9 @@ class _HomeScreenState extends State<HomeScreen> {
             // Row 2: History & Calendar
             Row(
               children: [
-                Expanded(child: _buildActionTile(Icons.history, "History", () => Navigator.pushNamed(context, '/history'), Colors.indigo)),
+                Expanded(child: _buildActionTile(Icons.history_rounded, "History", () => Navigator.pushNamed(context, '/history'), primaryNavy)),
                 const SizedBox(width: 14),
-                Expanded(child: _buildActionTile(Icons.calendar_month_rounded, "Dept. Calendar", () => Navigator.pushNamed(context, '/calendar'), Colors.pinkAccent)),
+                Expanded(child: _buildActionTile(Icons.calendar_month_rounded, "Dept. Calendar", () => Navigator.pushNamed(context, '/calendar'), const Color(0xFF003366))),
               ],
             ),
             const SizedBox(height: 14),
@@ -729,18 +880,18 @@ class _HomeScreenState extends State<HomeScreen> {
             Row(
               children: [
                 if (_role != 'admin')
-                  Expanded(child: _buildActionTile(Icons.person, "Profile", () => Navigator.pushNamed(context, '/profile'), const Color(0xFF06B6D4)))
+                  Expanded(child: _buildActionTile(Icons.person_outline_rounded, "Profile", () => Navigator.pushNamed(context, '/profile'), primaryNavy))
                 else
-                  Expanded(child: _buildActionTile(Icons.admin_panel_settings, "Admin", () => Navigator.pushNamed(context, '/admin'), Colors.redAccent)),
+                  Expanded(child: _buildActionTile(Icons.admin_panel_settings_outlined, "Admin", () => Navigator.pushNamed(context, '/admin'), primaryNavy)),
                  
                  const SizedBox(width: 14),
                  
                  // Apply OD (Moved from full width)
                  Expanded(child: _buildActionTile(
-                   Icons.business_center_rounded, 
+                   Icons.business_center_outlined, 
                    "Apply OD", 
                    () => Navigator.pushNamed(context, '/apply', arguments: {'type': 'OD'}), 
-                   const Color(0xFF0EA5E9) // Sky Blue
+                   primaryNavy
                  )),
               ],
             ),
@@ -751,53 +902,32 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildActionTile(IconData icon, String label, VoidCallback onTap, Color color) {
-    final bool isWide = MediaQuery.of(context).size.width > 600;
-    final theme = Theme.of(context);
-
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withOpacity(0.3), width: 1.5),
-          gradient: LinearGradient(
-            colors: [
-              color.withOpacity(0.1),
-              color.withOpacity(0.02),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          boxShadow: [
-             BoxShadow(
-               color: color.withOpacity(0.05), 
-               blurRadius: 10, 
-               offset: const Offset(0, 4)
-             )
-          ],
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-                padding: EdgeInsets.all(isWide ? 16 : 12),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1), 
-                  shape: BoxShape.circle,
-                  border: Border.all(color: color.withOpacity(0.2), width: 1),
-                ),
-                child: Icon(icon, color: color, size: isWide ? 34 : 28)),
-            SizedBox(height: isWide ? 12 : 8),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: color, size: 28)
+            ),
+            const SizedBox(height: 16),
             Text(
               label, 
-              style: TextStyle(
-                fontWeight: FontWeight.w800, 
-                fontSize: isWide ? 16 : 13, 
-                color: theme.textTheme.titleMedium?.color
-              )
+              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: textMain),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -880,10 +1010,10 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: Colors.purple.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(14),
+              color: primaryNavy.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: const Icon(Icons.star_rounded, color: Colors.purple, size: 24),
+            child: const Icon(Icons.star_rounded, color: primaryNavy, size: 24),
           ),
           title: Text(
             'Comp-Off Request',
@@ -948,7 +1078,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           title: Text(
             displayType,
-            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Theme.of(context).textTheme.titleMedium?.color),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textMain),
           ),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4.0),
@@ -1031,21 +1161,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   BoxDecoration _neatCard({bool hasBorder = false}) {
      final theme = Theme.of(context);
-     final isDark = theme.brightness == Brightness.dark;
      return BoxDecoration(
       color: theme.cardColor,
-      borderRadius: BorderRadius.circular(24),
-      border: hasBorder ? Border.all(
-        color: isDark ? Colors.white.withOpacity(0.1) : const Color(0xFFF1F5F9), 
-        width: 1.5
-      ) : null,
-      boxShadow: [
-        BoxShadow(
-          color: isDark ? Colors.black26 : const Color(0xFF0F172A).withOpacity(0.04), 
-          blurRadius: 20, 
-          offset: const Offset(0, 8)
-        )
-      ],
+      borderRadius: BorderRadius.circular(12),
+      border: hasBorder ? Border.all(color: const Color(0xFFE2E8F0), width: 1) : null,
     );
   }
 
@@ -1068,8 +1187,8 @@ class _HomeScreenState extends State<HomeScreen> {
     // Default Balances if empty
     if (items.isEmpty && !_loadingCounts) { // Only if not loading
       items = {
-        'CL': {'limit': 12, 'balance': 0, 'color': Colors.orange},
-        'VL': {'limit': 6, 'balance': 0, 'color': Colors.green},
+        'CL': {'limit': 12, 'balance': 0, 'color': const Color(0xFF4F46E5)},
+        'VL': {'limit': 6, 'balance': 0, 'color': const Color(0xFF10B981)},
       };
     }
     
@@ -1099,11 +1218,11 @@ class _HomeScreenState extends State<HomeScreen> {
     // Add Comp Off Balance
     final compBalance = _compGranted.clamp(0.0, 99.0);
     tiles.add(
-       _buildStatTile("Comp Off", compBalance, Colors.purple, Icons.star, "LEFT")
+       _buildStatTile("Comp Off", compBalance, const Color(0xFF8B5CF6), Icons.star_rounded, "LEFT")
     );
     // Add Comp Off Used
     tiles.add(
-      _buildStatTile("Comp Used", _compUsed, Colors.orange, Icons.history, "USED")
+      _buildStatTile("Comp Used", _compUsed, const Color(0xFF003366), Icons.history_rounded, "USED")
     );
     return LayoutBuilder(
       builder: (context, constraints) {

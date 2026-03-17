@@ -34,7 +34,7 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
   // Proof Upload
   PlatformFile? _proofFile;
 
-  static const Color primaryPurple = Colors.purple;
+  // Colors used inline as const Color(0xFF001C3D)
   // static const Color darkSlate = Color(0xFF0F172A); // Use Theme
   // static const Color scaffoldBg = Color(0xFFF8FAFC); // Use Theme
 
@@ -80,14 +80,15 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
            proofUrl = await CloudinaryService.uploadFileBytes(
              _proofFile!.bytes!, 
              _proofFile!.name
-           );
+           ).timeout(const Duration(seconds: 15));
         } else if (_proofFile!.path != null) {
-           proofUrl = await CloudinaryService.uploadFile(XFile(_proofFile!.path!));
+           proofUrl = await CloudinaryService.uploadFile(XFile(_proofFile!.path!))
+               .timeout(const Duration(seconds: 15));
         }
       }
 
       // --- FETCH USER DETAILS ---
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get().timeout(const Duration(seconds: 10));
       final userData = userDoc.data() ?? {};
       final userName = userData['name'] ?? 'An employee';
       final employeeId = userData['employeeId'] ?? userData['manualEmployeeId'] ?? 'KEC';
@@ -104,7 +105,7 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
         description: _descriptionController.text.trim(),
         isMultiDay: _isMultiDay,
         proofUrl: proofUrl,
-      );
+      ).timeout(const Duration(seconds: 15));
 
       // Prepare Data for PDF (with generated applicationId)
       final pdfData = {
@@ -265,7 +266,7 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
                   filled: true,
                   fillColor: Theme.of(context).cardColor,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: Theme.of(context).dividerColor),
                   ),
                   ),
@@ -282,7 +283,7 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
                      decoration: BoxDecoration(
                          color: Colors.blue.withOpacity(0.1),
                          borderRadius: BorderRadius.circular(12)),
-                     child: const Icon(Icons.attach_file, color: primaryPurple),
+                     child: const Icon(Icons.attach_file, color: const Color(0xFF001C3D)),
                    ),
                    const SizedBox(width: 12),
                    Expanded(
@@ -320,9 +321,9 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _submitRequest,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryPurple,
+                    backgroundColor: const Color(0xFF001C3D),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                   child: _isLoading
@@ -373,14 +374,6 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
         decoration: BoxDecoration(
           color: isActive ? Theme.of(context).cardColor : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
-          boxShadow: isActive
-              ? [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2))
-                ]
-              : [],
         ),
         child: Text(
           label,
@@ -388,7 +381,7 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
           style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 13,
-              color: isActive ? primaryPurple : Colors.grey),
+              color: isActive ? const Color(0xFF001C3D) : Colors.grey),
         ),
       ),
     );
@@ -400,8 +393,8 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
         final theme = Theme.of(context);
         final isDark = theme.brightness == Brightness.dark;
         final colorScheme = isDark 
-             ? const ColorScheme.dark(primary: primaryPurple, onPrimary: Colors.white, surface: Color(0xFF1E293B), onSurface: Colors.white)
-             : const ColorScheme.light(primary: primaryPurple);
+             ? const ColorScheme.dark(primary: const Color(0xFF001C3D), onPrimary: Colors.white, surface: Color(0xFF1E293B), onSurface: Colors.white)
+             : const ColorScheme.light(primary: const Color(0xFF001C3D));
 
         if (_isMultiDay) {
           final range = await showDateRangePicker(
@@ -453,12 +446,12 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_month_rounded, color: primaryPurple),
+            const Icon(Icons.calendar_month_rounded, color: const Color(0xFF001C3D)),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,7 +494,7 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: DropdownButtonFormField<double>(
@@ -524,8 +517,8 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         // Use primary color for background instead of text color to avoid white-on-white
-        color: primaryPurple, 
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFF001C3D), 
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Center(
         child: Text(

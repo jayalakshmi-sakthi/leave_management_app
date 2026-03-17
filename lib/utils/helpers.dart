@@ -108,6 +108,45 @@ class Helpers {
     return Colors.blueGrey;
   }
 
+  static Color getDeptColor(String dept) {
+     // Matches Admin Panel Logic
+     switch (dept.toUpperCase()) {
+       case 'CSE': case 'IT': case 'CSD': case 'AIDS': case 'AIML': 
+       case 'B.SC CSD': case 'B.SC IS': case 'B.SC SS': case 'M.SC SS':
+         return const Color(0xFF3B82F6); // Blue
+       case 'ECE': case 'EEE': case 'EIE': 
+         return const Color(0xFFF59E0B); // Amber
+       case 'MECH': case 'CIVIL': case 'MTS': case 'AUTO': case 'CHEM': case 'FT':
+         return const Color(0xFFEF4444); // Red
+       case 'MBA': case 'MCA': 
+         return const Color(0xFF8B5CF6); // Violet
+       case 'PLACEMENT CELL': 
+         return const Color(0xFF10B981); // Emerald
+       default:
+         return const Color(0xFF64748B); // Slate
+     }
+  }
+
+  static IconData getDeptIcon(String dept) {
+    switch (dept.toUpperCase()) {
+      case 'CSE': case 'IT': case 'CSD': case 'AIDS': case 'AIML': 
+      case 'B.SC CSD': case 'B.SC IS': case 'B.SC SS': case 'M.SC SS':
+        return Icons.computer_rounded;
+      case 'ECE': case 'EEE': case 'EIE': 
+        return Icons.memory_rounded;
+      case 'MECH': case 'CIVIL': case 'MTS': case 'AUTO': case 'CHEM': case 'FT':
+        return Icons.settings_suggest_rounded;
+      case 'MBA': case 'MCA': 
+        return Icons.business_rounded;
+      case 'PLACEMENT CELL': 
+        return Icons.work_outline_rounded;
+      case 'PH.D':
+        return Icons.school_rounded;
+      default:
+        return Icons.account_balance_rounded;
+    }
+  }
+
   /// Returns the full name for a leave code
   static String getLeaveName(String type) {
     final t = type.toUpperCase();

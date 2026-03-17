@@ -102,15 +102,12 @@ class NotificationService {
       }
 
       FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        // On Web, browser handles toast. On Mobile, show local notification.
-        if (message.notification != null && !kIsWeb) {
-          showLocalNotification(
-            id: message.notification.hashCode,
-            title: message.notification!.title ?? 'Alert',
-            body: message.notification!.body ?? '',
-            payload: jsonEncode(message.data),
-          );
-        }
+        // Broadcast to UI regardless 
+        _navController.add(message.data);
+        
+        // Skip System Tray Notification in Foreground for Staff App 
+        // because listenForNewNotifications handles Firestore document added.
+        debugPrint("🔔 FCM Foreground Message (Staff App): ${message.data}");
       });
 
       // Handle Background Click (App Opened)
@@ -266,6 +263,7 @@ class NotificationService {
     String? relatedId, // e.g., leaveId
     String? leaveType, // ✅ Added
     String? academicYearId, // ✅ Added
+    String? targetDepartment, // ✅ Added
   }) async {
     try {
       // 1. Save to Firestore (Real-time DB)
@@ -277,6 +275,7 @@ class NotificationService {
         'relatedId': relatedId,
         'leaveType': leaveType,
         'academicYearId': academicYearId,
+        'targetDepartment': targetDepartment, // ✅ Added for filtering
         'isRead': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -305,16 +304,10 @@ class NotificationService {
     Map<String, dynamic>? data,
   }) async {
     try {
-      // Get User's Token
       final userDoc = await _db.collection('users').doc(toUserId).get();
       final token = userDoc.data()?['fcmToken'];
-      
-      if (token == null) {
-        debugPrint("No FCM token found for user $toUserId. Skipping push.");
-        return;
-      }
+      if (token == null) return;
 
-      // Instead of sending directly (security risk), we queue it for a Cloud Function
       await _db.collection('fcm_queue').add({
         'token': token,
         'title': title,
@@ -329,10 +322,6 @@ class NotificationService {
     }
   }
 
-  /// Notify admins about a new event.
-  /// If [targetDepartment] is provided, only notifies:
-  /// 1. Super Admins
-  /// 2. Admins of that specific department.
   Future<void> notifyAdmins({
     required String title,
     required String body,
@@ -340,36 +329,39 @@ class NotificationService {
     String? relatedId,
     String? leaveType,
     String? academicYearId,
-    String? targetDepartment, // ✅ Added for isolation
+    String? targetDepartment,
+    String? triggeringUserId,
   }) async {
     try {
-      // Fetch ALL admins (we can't optimize much with composite indexes easily here unless we add complex rules)
-      final adminsSnap = await _db.collection('users').where('role', isEqualTo: 'admin').get();
-      
-      // Also fetch super_admins if they are stored as separate roll or same 'admin' role but different flag? 
-      // Assuming 'role' == 'super_admin' might exist or 'role'=='admin' && 'isSuperAdmin'==true
-      // Based on typical implementation, let's also fetch 'super_admin' if checking 'role' field
-      final superAdminsSnap = await _db.collection('users').where('role', isEqualTo: 'super_admin').get();
+      final sanitizedTarget = targetDepartment?.trim();
+      final adminsSnap = await _db.collection('users')
+          .where('role', whereIn: ['admin', 'super_admin'])
+          .get();
       
       final Set<String> recipientIds = {};
 
-      // 1. Add Super Admins
-      for (var doc in superAdminsSnap.docs) {
-        recipientIds.add(doc.id);
-      }
-
-      // 2. Add Department Admins (if matching)
       for (var doc in adminsSnap.docs) {
+          if (doc.id == triggeringUserId) continue;
+
           final data = doc.data();
-          final adminDept = data['department'];
-          // If no target department specified, send to all (fallback)
-          // If target specified, only send if match
-          if (targetDepartment == null || adminDept == targetDepartment || adminDept == 'All') {
-             recipientIds.add(doc.id);
+          final String role = data['role'] ?? 'staff';
+          final String? adminDept = (data['department'] as String?)?.trim();
+          bool shouldNotify = false;
+
+          if (role == 'super_admin') {
+            shouldNotify = true;
+          } else if (role == 'admin') {
+            if (adminDept == 'All') {
+              shouldNotify = true;
+            } else if (sanitizedTarget != null && adminDept?.toLowerCase() == sanitizedTarget.toLowerCase()) {
+              shouldNotify = true;
+            } else if (sanitizedTarget == null && adminDept == null) {
+              shouldNotify = true;
+            }
           }
+          if (shouldNotify) recipientIds.add(doc.id);
       }
 
-      // Send notifications
       for (var uid in recipientIds) {
         await sendNotification(
           toUserId: uid,
@@ -379,8 +371,10 @@ class NotificationService {
           relatedId: relatedId,
           leaveType: leaveType,
           academicYearId: academicYearId,
+          targetDepartment: targetDepartment,
         );
       }
+      debugPrint("📢 Notifications sent to ${recipientIds.length} admins (Target: $sanitizedTarget)");
     } catch (e) {
       debugPrint("Error notifying admins: $e");
     }

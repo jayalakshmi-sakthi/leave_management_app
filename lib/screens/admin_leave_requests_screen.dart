@@ -21,23 +21,26 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
     return "$startYear-${startYear + 1}";
   }
 
-  // Reuse logic from AdminDashboard for Approve/Reject
-  Future<void> _updateStatus(String docId, String status) async {
+  /// Update status using department from data to construct correct path
+  Future<void> _updateStatus(Map<String, dynamic> data, String docId, String status) async {
+    final dept = (data['department'] ?? 'General') as String;
     try {
       await FirebaseFirestore.instance
           .collection('leaveRequests')
+          .doc(dept)
+          .collection('records')
           .doc(docId)
           .update({'status': status});
     } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Error: $e")));
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Error: $e")));
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final collectionName = 'leaveRequests';
-
     return DefaultTabController(
       length: 4,
       child: Scaffold(
@@ -63,9 +66,10 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
             ],
           ),
         ),
+        // Use collectionGroup to read all records for admin view
         body: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection(collectionName)
+              .collectionGroup('records')
               .where('academicYearId', isEqualTo: _getAcademicYear())
               .snapshots(),
           builder: (context, snapshot) {
@@ -213,6 +217,8 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
                 _rowKV("Duration",
                     "${DateFormat('MMM dd').format(from)} - ${DateFormat('MMM dd, yyyy').format(to)}"),
                 const SizedBox(height: 8),
+                _rowKV("Dept", data['department'] ?? 'N/A'),
+                const SizedBox(height: 8),
                 _rowKV("Reason", data['reason'] ?? 'No reason provided'),
               ],
             ),
@@ -226,7 +232,7 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () => _updateStatus(docId, "Rejected"),
+                      onPressed: () => _updateStatus(data, docId, "Rejected"),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.redAccent,
                         side: const BorderSide(color: Colors.redAccent),
@@ -237,7 +243,7 @@ class _AdminLeaveRequestsScreenState extends State<AdminLeaveRequestsScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => _updateStatus(docId, "Approved"),
+                      onPressed: () => _updateStatus(data, docId, "Approved"),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,

@@ -11,6 +11,7 @@ class UserModel {
   final String? manualEmployeeId; // Display ID
   final String? designation;
   final String? profilePicUrl;
+  final String department; // ✅ Added
   final Map<String, double>? leaveOverrides; // New: Personalized leave counts
 
   const UserModel({
@@ -25,6 +26,7 @@ class UserModel {
     this.manualEmployeeId,
     this.designation,
     this.profilePicUrl,
+    required this.department, // ✅ Added
     this.leaveOverrides,
   });
 
@@ -40,6 +42,7 @@ class UserModel {
         'manualEmployeeId': manualEmployeeId,
         'designation': designation,
         'profilePicUrl': profilePicUrl,
+        'department': department, // ✅ Added
         // When writing a new document, the service layer should replace these
         // ISO strings with Firestore's FieldValue.serverTimestamp() for accuracy.
         'joinDate': joinDate.toIso8601String(),
@@ -71,6 +74,7 @@ class UserModel {
       manualEmployeeId: m['manualEmployeeId'] as String?,
       designation: m['designation'] as String?,
       profilePicUrl: m['profilePicUrl'] as String?,
+      department: m['department'] as String? ?? 'General', // ✅ Added
       joinDate: _parseDate(m['joinDate']),
       createdAt: _parseDate(m['createdAt']),
       leaveOverrides: m['leaveOverrides'] != null 
@@ -109,6 +113,7 @@ class UserModel {
     String? role,
     DateTime? joinDate,
     DateTime? createdAt,
+    String? department,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -118,6 +123,7 @@ class UserModel {
       role: role ?? this.role,
       joinDate: joinDate ?? this.joinDate,
       createdAt: createdAt ?? this.createdAt,
+      department: department ?? this.department,
     );
   }
 }

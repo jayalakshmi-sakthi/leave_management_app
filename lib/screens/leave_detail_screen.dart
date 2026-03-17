@@ -190,12 +190,13 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                            ),
                          );
                       },
-                      icon: const Icon(Icons.picture_as_pdf_rounded, color: Colors.indigo),
+                      icon: const Icon(Icons.picture_as_pdf_rounded, color: Color(0xFF001C3D)),
                       label: const Text("View/Download Application Form"),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-                        side: const BorderSide(color: Colors.indigo),
-                        foregroundColor: Colors.indigo,
+                        side: const BorderSide(color: Color(0xFF001C3D)),
+                        foregroundColor: Color(0xFF001C3D),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
                     ),
                   ),
@@ -223,10 +224,13 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                       width: double.infinity,
                       child: OutlinedButton.icon(
                         onPressed: () => _openUrl(_data!['signedFormUrl']),
-                        icon: const Icon(Icons.description, color: Colors.blue),
+                        icon: const Icon(Icons.description, color: Color(0xFF001C3D)),
                         label: const Text("View Application / Attachment"),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: const BorderSide(color: Color(0xFF001C3D)),
+                          foregroundColor: Color(0xFF001C3D),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
@@ -245,6 +249,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           side: const BorderSide(color: Colors.green),
                           foregroundColor: Colors.green,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),
@@ -262,9 +267,10 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                             ? "Upload Signed Copy"
                             : "Re-upload Signed Copy"),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                          backgroundColor: const Color(0xFF001C3D),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                       ),
                     ),

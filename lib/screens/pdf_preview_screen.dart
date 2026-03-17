@@ -111,7 +111,7 @@ class _PdfPreviewScreenState extends State<PdfPreviewScreen> {
         onPressed: _printOrShare,
         icon: const Icon(Icons.download_rounded),
         label: const Text("Download / Print PDF"),
-        backgroundColor: Colors.indigo,
+        backgroundColor: const Color(0xFF001C3D),
         foregroundColor: Colors.white,
       ) : null,
     );

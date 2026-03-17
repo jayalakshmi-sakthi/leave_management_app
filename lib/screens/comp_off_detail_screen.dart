@@ -62,7 +62,7 @@ class CompOffDetailScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
                   ),
                   child: Column(
@@ -85,7 +85,7 @@ class CompOffDetailScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFF1F5F9), width: 1.5),
                   ),
                   child: Text(
@@ -108,7 +108,7 @@ class CompOffDetailScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: const Color(0xFFE0F2F9),
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Row(
                         children: [
@@ -130,7 +130,7 @@ class CompOffDetailScreen extends StatelessWidget {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.red.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: Colors.red.withOpacity(0.1)),
                     ),
                     child: const Row(

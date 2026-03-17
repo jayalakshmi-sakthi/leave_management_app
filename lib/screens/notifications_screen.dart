@@ -3,10 +3,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/notification_service.dart';
+import '../utils/helpers.dart';
 import '../widgets/responsive_wrapper.dart'; // ✅ Added
 
 class NotificationsScreen extends StatelessWidget {
-  const NotificationsScreen({super.key});
+  final String? departmentFilter; // ✅ Added for admin isolation
+  const NotificationsScreen({super.key, this.departmentFilter});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +41,7 @@ class NotificationsScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.done_all_rounded, color: Colors.blue),
+            icon: const Icon(Icons.done_all_rounded, color: Color(0xFF0EA5E9)),
             onPressed: () => NotificationService().markAllAsRead(user.uid),
             tooltip: "Mark all as read",
           )
@@ -49,11 +51,16 @@ class NotificationsScreen extends StatelessWidget {
         child: StreamBuilder<List<Map<String, dynamic>>>(
           stream: NotificationService().streamNotifications(user.uid),
           builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-
-            final notifications = snapshot.data ?? [];
+            final allNotifications = snapshot.data ?? [];
+            
+            // 🔎 APPLY FILTER
+            final notifications = allNotifications.where((n) {
+              if (departmentFilter == null || departmentFilter == 'All') return true;
+              
+              final target = n['targetDepartment']?.toString();
+              if (target == null) return true; // Show legacy/general notifications
+              return target.toLowerCase() == departmentFilter!.toLowerCase();
+            }).toList();
 
             if (notifications.isEmpty) {
               return Center(
@@ -90,24 +97,28 @@ class NotificationsScreen extends StatelessWidget {
                 final createdAt = (notif['createdAt'] as Timestamp?)?.toDate();
                 final String type = (notif['type'] ?? 'info').toString().toLowerCase();
 
-                // Determine Icon & Color
+                // Determine Icon & Color (Unified Palette)
                 IconData icon = Icons.info_rounded;
-                Color color = Colors.blue;
+                Color color = const Color(0xFF0EA5E9); // Default Sky
 
                 final String combinedText = "$title $body".toLowerCase();
 
                 if (combinedText.contains('approved')) {
                   icon = Icons.check_circle_rounded;
-                  color = Colors.teal;
+                  color = const Color(0xFF00A389); // Unified Teal
                 } else if (combinedText.contains('rejected')) {
                   icon = Icons.cancel_rounded;
-                  color = Colors.red;
+                  color = const Color(0xFFEF4444); // Unified Red
                 } else if (combinedText.contains('comp-off') || notif['leaveType'] == 'COMP') {
                   icon = Icons.stars_rounded;
-                  color = Colors.orange;
+                  color = const Color(0xFFF59E0B); // Unified Amber
                 } else if (type == 'status_change') {
                   icon = Icons.assignment_turned_in_rounded;
-                  color = Colors.deepPurple;
+                  color = const Color(0xFF4F46E5); // Unified Indigo
+                } else if (notif['targetDepartment'] != null) {
+                  // Admin isolation: User color/icon from department
+                  color = Helpers.getDeptColor(notif['targetDepartment'].toString());
+                  icon = Helpers.getDeptIcon(notif['targetDepartment'].toString());
                 }
 
                 // Format Time
@@ -136,7 +147,7 @@ class NotificationsScreen extends StatelessWidget {
                     alignment: Alignment.centerRight,
                     decoration: BoxDecoration(
                       color: Colors.red.withOpacity(0.8),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(Icons.delete_outline, color: Colors.white),
                   ),
@@ -147,25 +158,18 @@ class NotificationsScreen extends StatelessWidget {
                       }
                       // Navigate if needed
                     },
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(12),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
                         color: theme.cardColor,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         border: Border.all(
                           color: isRead 
                               ? theme.dividerColor.withOpacity(0.5) 
                               : color.withOpacity(0.5),
                           width: isRead ? 1 : 1.5,
                         ),
-                        boxShadow: isRead ? [] : [
-                           BoxShadow(
-                             color: color.withOpacity(0.1),
-                             blurRadius: 8,
-                             offset: const Offset(0, 4)
-                           )
-                        ]
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,

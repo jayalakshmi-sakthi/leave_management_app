@@ -90,9 +90,9 @@ class PdfService {
     // Logic for Date Text
     String dateText;
     if (isSingleDay) {
-      dateText = "on ${DateFormat('dd-MM-yyyy').format(fromDate)}";
+      dateText = "${DateFormat('dd-MM-yyyy').format(fromDate)} (Single Day)";
     } else {
-      dateText = "from ${DateFormat('dd-MM-yyyy').format(fromDate)} to ${DateFormat('dd-MM-yyyy').format(toDate)}";
+      dateText = "${DateFormat('dd-MM-yyyy').format(fromDate)} To ${DateFormat('dd-MM-yyyy').format(toDate)}";
     }
 
     // Logic for Content
@@ -145,7 +145,7 @@ class PdfService {
                    if (employeeId != null && employeeId != "0000")
                      _tableRow("Employee ID", employeeId, font, fontBold),
                    _tableRow("Type of Leave", Helpers.getLeaveName(leaveType), font, fontBold),
-                   _tableRow("Period of Leave", dateText.replaceAll('on ', '').replaceAll('from ', ''), font, fontBold),
+                   _tableRow("Period of Leave", dateText, font, fontBold),
                    _tableRow("No. of Days", durationText, font, fontBold),
                    _tableRow("Reason for Leave", reason, font, fontBold),
                 ]

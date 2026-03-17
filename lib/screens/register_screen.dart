@@ -101,10 +101,10 @@ class _RegisterScreenState extends State<RegisterScreen> with WidgetsBindingObse
         });
       }
     } on FirebaseAuthException catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
       _showError(e.message ?? "Registration failed");
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
       // AuthService now throws mapped strings, but we catch everything for safety
       final errorMsg = e.toString().replaceFirst("Exception: ", "");
       _showError(errorMsg);

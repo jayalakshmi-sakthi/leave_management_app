@@ -69,7 +69,7 @@ class AuthService {
         // "employeeId": empId, // ❌ REMOVED
         "approved": false, // New users need approval
         "createdAt": FieldValue.serverTimestamp(),
-      });
+      }).timeout(const Duration(seconds: 15));
 
       // ℹ️ Notification is sent after profile setup (profile_setup_screen.dart)
       // where the admin gets the actual employee ID and designation.
@@ -127,7 +127,7 @@ class AuthService {
       final user = userCred.user!;
 
       // 🔐 ENSURE FIRESTORE USER EXISTS
-      final doc = await _fire.collection(_users).doc(user.uid).get();
+      final doc = await _fire.collection(_users).doc(user.uid).get().timeout(const Duration(seconds: 10));
       if (!doc.exists) {
         // final empId = await _generateNextEmployeeId(); // ❌ REMOVED
         await _fire.collection(_users).doc(user.uid).set({
@@ -138,7 +138,7 @@ class AuthService {
           // "employeeId": empId, // ❌ REMOVED
           "approved": false, // New users need approval
           "createdAt": FieldValue.serverTimestamp(),
-        });
+        }).timeout(const Duration(seconds: 15));
         
       }
 
@@ -172,7 +172,7 @@ class AuthService {
 
       // Format: EMP-YYYY-XXXX (e.g. EMP-2024-0042)
       return "EMP-$year-${newCount.toString().padLeft(4, '0')}";
-    });
+    }).timeout(const Duration(seconds: 10), onTimeout: () => "EMP-$year-${DateTime.now().millisecondsSinceEpoch.toString().substring(6)}");
   }
 
   // --------------------------------------------------

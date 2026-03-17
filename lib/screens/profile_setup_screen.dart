@@ -25,7 +25,6 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> with SingleTick
   
   String? _selectedDepartment;
   final List<String> _departments = [
-    'Placement Cell', 
     // Engineering
     'CIVIL', 'MECH', 'MTS', 'AUTO', 'CHEM', 'FT',
     'EEE', 'ECE', 'EIE', 'CSE', 'IT', 'CSD', 'AIDS', 'AIML',
@@ -34,7 +33,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> with SingleTick
     // Science
     'B.Sc CSD', 'B.Sc IS', 'B.Sc SS', 'M.Sc SS',
     // Others
-    'Ph.D', 'General'
+    'Ph.D', 'General', 'Placement Cell'
   ];
   
   XFile? _imageFile;
@@ -74,7 +73,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> with SingleTick
       if ((user.displayName ?? "").isNotEmpty) {
         _nameController.text = user.displayName!;
       }
-      final snap = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      final snap = await FirebaseFirestore.instance.collection('users').doc(user.uid).get().timeout(const Duration(seconds: 10));
       if (snap.exists) {
         final data = snap.data();
         if (data != null) {
@@ -145,10 +144,11 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> with SingleTick
          try {
            await NotificationService().notifyAdmins(
              title: 'New User Registration',
-             body: '${name.toUpperCase()} ($empId) - ${designation.toUpperCase()} has awaiting approval.',
+             body: '${name.toUpperCase()} ($empId) - ${designation.toUpperCase()} is awaiting approval.',
              type: 'new_user',
              relatedId: user.uid,
              targetDepartment: _selectedDepartment, // ✅ department isolation
+             triggeringUserId: user.uid,
            );
          } catch (e) {
            debugPrint("Notification error: $e");
@@ -229,34 +229,28 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> with SingleTick
           Positioned(
             top: -100,
             right: -100,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 80, sigmaY: 80),
-              child: Container(
+            child: Container(
                 width: 300,
                 height: 300,
                 decoration: BoxDecoration(
-                  color: primaryBlue.withOpacity(0.15),
+                  color: primaryBlue.withOpacity(0.08),
                   shape: BoxShape.circle,
                 ),
               ),
-            ),
           ),
           
            // Blob 2
           Positioned(
             bottom: 100,
             left: -50,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-              child: Container(
+            child: Container(
                 width: 200,
                 height: 200,
                 decoration: BoxDecoration(
-                  color: Colors.purpleAccent.withOpacity(0.1),
+                  color: Colors.purpleAccent.withOpacity(0.05),
                   shape: BoxShape.circle,
                 ),
               ),
-            ),
           ),
 
           // 2. Main Content
@@ -288,17 +282,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> with SingleTick
                         // Glass Card
                         ClipRRect(
                           borderRadius: BorderRadius.circular(32),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                            child: Container(
+                          child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.65),
+                                color: Colors.white.withOpacity(0.9),
                                 borderRadius: BorderRadius.circular(32),
-                                border: Border.all(color: Colors.white.withOpacity(0.8), width: 1.5),
+                                border: Border.all(color: Colors.white, width: 1.5),
                                 boxShadow: [
                                    BoxShadow(color: const Color(0xFF2563EB).withOpacity(0.08), blurRadius: 40, offset: const Offset(0, 15)),
-                                   BoxShadow(color: Colors.white.withOpacity(0.4), blurRadius: 0, offset: const Offset(0, 0)), // Inner glow fake
                                 ],
                               ),
                               child: Form(
@@ -444,8 +435,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> with SingleTick
                               ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
                     ),
                   ),
                 ),

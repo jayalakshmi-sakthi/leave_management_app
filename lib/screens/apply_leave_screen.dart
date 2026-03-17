@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -42,19 +43,15 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
   // late final String academicYear; // Removed duplicate
   // --- Soulful Palette ---
   // --- Soulful Palette ---
-  static const Color primaryPurple = Color(0xFF7C3AED); // Violet 600
-  static const Color accentPurple = Color(0xFF5B21B6); // Violet 800
-  // Helper getters for colors if needed, but prefer Theme.of(context) in build
-  // Re-introducing static colors locally if they are used outside build or as quick fixes
-  // but better to use dynamic values.
-  // For now, let's define them to fix compilation, but marked as fallback.
-  static const Color darkSlate = Color(0xFF0F172A);
-  static const Color softText = Color(0xFF64748B);
-  static const Color glassBorder = Color(0xFFE2E8F0);
-  static const Color cardBg = Colors.white; // Default for light mode fallback
+  static const Color primaryNavy = Color(0xFF001C3D); // KEC Navy
+  static const Color accentNavy = Color(0xFF003366);
+  static const Color textMain = Color(0xFF1E293B);
+  static const Color textMuted = Color(0xFF64748B);
+  static const Color cardBg = Colors.white;
 
   // --- Config State ---
   String academicYear = ""; // Will be fetched
+  String userDept = "General"; 
   bool _configLoading = true;
   
   // Dynamic Leave Types
@@ -81,8 +78,11 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
 
   List<Map<String, dynamic>> _compGrants = [];
 
-  // --- Real-time Balances ---
+  // --- Real-time Balances & Config ---
   Map<String, double> _balances = {};
+  StreamSubscription? _configSub;
+  StreamSubscription? _typeSub;
+  StreamSubscription? _balanceSub;
 
   @override
   void initState() {
@@ -91,60 +91,60 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
   }
 
   Future<void> _loadConfig() async {
+    final fs = FirestoreService();
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+
     try {
-       // Fetch valid Academic Year & Leave Types from Admin Settings
-       final fs = FirestoreService();
-       final userId = FirebaseAuth.instance.currentUser?.uid;
-       
-       if (userId == null) return;
+      final userSnap = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      final dept = userSnap.data()?['department'] ?? 'General';
+      if (mounted) setState(() => userDept = dept);
 
-       final userSnap = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-       final userDept = userSnap.data()?['department'] ?? 'General';
+      // 1. Listen for Balances (Dynamic calculation)
+      _balanceSub = fs.streamDynamicUserBalances(userId, dept).listen((data) {
+        if (mounted) setState(() => _balances = data);
+      });
 
-       final balanceData = await fs.getUserBalances(userId);
-       final acSettings = await fs.getAcademicYearSettings(department: userDept);
-       final typesList = await fs.getLeaveTypes(department: userDept);
-       
-       if (mounted) {
-         setState(() {
-           _balances = balanceData['balances'];
-           academicYear = acSettings['label'] ?? "2024-2025";
-           
-           // Convert regex/maps to simple string list for dropdown
-           // Also ensure COMP is present if logic demands, or rely on admin config?
-           // The UI logic heavily relies on 'COMP' string for conditionals.
-           // Admin Config 'name' usually matches.
-           
-           _types = typesList
-               .map((e) => e['name'] as String)
-               .where((name) => name != 'SL' && name != 'OD') // Force remove SL and OD (OD has separate menu)
-               .toList();
-           
-           // Safety Fallback: Baseline types if settings are empty
-           if (_types.isEmpty) _types = ['CL', 'VL'];
-           
-           // Ensure COMP is in the list if implementation expects it
-           if (!_types.contains('COMP')) _types.add('COMP');
-           
-           // CRITICAL FIX: Preserve 'OD' if it was added by didChangeDependencies (Deep Link)
-           if (_selected == 'OD' && !_types.contains('OD')) {
-             _types.add('OD');
-           }
-           
-           _configLoading = false;
-         });
-       }
+      // 2. Listen for Academic Year
+      _configSub = fs.streamAcademicYearSettings(department: dept).listen((data) {
+        if (mounted) setState(() => academicYear = data['label']);
+      });
+
+      // 3. Listen for Leave Types
+      _typeSub = fs.streamLeaveTypes(department: dept).listen((typesList) {
+        if (mounted) {
+          setState(() {
+            // Exclude 'OD' from regular leave picker — OD has its own dedicated page/flow
+            _types = typesList
+                .map((e) => e['name'] as String)
+                .where((name) => name != 'OD') // ✅ OD is separate, not a regular leave type
+                .toList();
+            
+            if (_types.isEmpty) _types = ['CL', 'VL', 'COMP'];
+            if (!_types.contains('COMP')) _types.add('COMP');
+            
+            // Deep Link OD support: only add OD if the user was directed here via OD route
+            if (_selected == 'OD' && !_types.contains('OD')) {
+              _types.add('OD');
+            }
+            
+            _configLoading = false;
+          });
+        }
+      });
     } catch (e) {
-      debugPrint("Config Load Error: $e");
-      // Fallback
-      if (mounted) {
-         setState(() {
-           academicYear = "2024-2025";
-           _types = ['CL', 'VL', 'COMP']; 
-           _configLoading = false;
-         });
-      }
+      debugPrint("Config Stream Error: $e");
+      if (mounted) setState(() => _configLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _configSub?.cancel();
+    _typeSub?.cancel();
+    _balanceSub?.cancel();
+    _reason.dispose(); // Clean up other controllers
+    super.dispose();
   }
 
   // --- Argument Handling ---
@@ -207,22 +207,29 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       if (user == null) return;
 
       // 1. Fetch All Grants (Earned)
-      // 1. Fetch from Subcollection
+      // 1. Fetch from Department Isolated Collection
+      final qDept = await FirebaseFirestore.instance
+          .collection('departments')
+          .doc(userDept)
+          .collection('compOffGrants')
+          .where('userId', isEqualTo: user.uid)
+          .where('academicYearId', isEqualTo: academicYear)
+          .get();
+
+      // 2. Fetch from legacy paths (for migration)
       final qSub = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .collection('compOffGrants')
           .get();
 
-      // 2. Fetch from Root
       final qRoot = await FirebaseFirestore.instance
           .collection('compOffGrants')
           .where('userId', isEqualTo: user.uid)
-          .where('academicYearId', isEqualTo: academicYear)
           .get();
 
-      // Merge and Sort
-      final allDocs = [...qSub.docs, ...qRoot.docs];
+      // Merge results
+      final allDocs = [...qDept.docs, ...qSub.docs, ...qRoot.docs];
       allDocs.sort((a, b) {
          dynamic valA = a.data()['workedDate'];
          dynamic valB = b.data()['workedDate'];
@@ -242,9 +249,11 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       
       final grantDocs = allDocs;
 
-      // 2. Fetch All Usage (Spent)
+      // 2. Fetch All Usage (Spent) — use dept-scoped path
       final usageSnap = await FirebaseFirestore.instance
           .collection("leaveRequests")
+          .doc(userDept)
+          .collection("records")
           .where('userId', isEqualTo: user.uid)
           .where('academicYearId', isEqualTo: academicYear)
           .get();
@@ -260,7 +269,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
 
       for (var doc in usageSnap.docs) {
         final d = doc.data();
-        if (d['leaveType'] == 'COMP' && d['status'] != 'Rejected') {
+        if (d['leaveType'] == 'COMP' && d['status'] == 'Approved') {
            totalUsed += safeParse(d['numberOfDays']);
         }
       }
@@ -351,7 +360,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
     } catch (e) {
       debugPrint("Error fetching comp data: $e");
     } finally {
-      setState(() => _loadingEx = false);
+      if (mounted) setState(() => _loadingEx = false);
     }
   }
 
@@ -366,20 +375,20 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: Colors.orange.withOpacity(0.1),
+            color: const Color(0xFFF59E0B).withOpacity(0.1),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.orange.withOpacity(0.3))),
+            border: Border.all(color: const Color(0xFFF59E0B).withOpacity(0.3))),
         child: Column(
           children: [
             Row(
               children: const [
-                Icon(Icons.warning_amber_rounded, color: Colors.orange),
+                Icon(Icons.warning_amber_rounded, color: Color(0xFFF59E0B)),
                 SizedBox(width: 12),
                 Expanded(
                     child: Text(
                         "No Earned Comp Offs available. Please Request Comp Off first.",
                         style: TextStyle(
-                            color: Colors.orange, fontWeight: FontWeight.bold))),
+                            color: Color(0xFFF59E0B), fontWeight: FontWeight.bold))),
               ],
             ),
           ],
@@ -467,11 +476,11 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? primaryPurple.withOpacity(0.1)
+                          ? primaryNavy.withOpacity(0.1)
                           : Colors.white,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                          color: isSelected ? primaryPurple : glassBorder,
+                          color: isSelected ? primaryNavy : const Color(0xFFE2E8F0),
                           width: 2),
                     ),
                     child: Column(
@@ -483,14 +492,14 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
                           style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
-                              color: isSelected ? primaryPurple : darkSlate),
+                              color: isSelected ? primaryNavy : Color(0xFF1E293B)),
                         ),
                         Text(
                           DateFormat('yyyy').format(date),
                           style: TextStyle(
                               fontSize: 12,
                               color:
-                                  isSelected ? primaryPurple : Colors.grey[600]),
+                                  isSelected ? primaryNavy : Colors.grey[600]),
                         ),
                         const SizedBox(height: 4),
                         // Reason Text
@@ -511,7 +520,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
                               color: isUsed
                                   ? Colors.grey[200]
                                   : (isSelected
-                                      ? primaryPurple
+                                      ? primaryNavy
                                       : Colors.green[50]),
                               borderRadius: BorderRadius.circular(8)),
                           child: Text(
@@ -560,8 +569,8 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
         return Theme(
           data: theme.copyWith(
             colorScheme: isDark 
-                ? const ColorScheme.dark(primary: primaryPurple, onPrimary: Colors.white, surface: Color(0xFF1E293B), onSurface: Colors.white)
-                : const ColorScheme.light(primary: primaryPurple, onSurface: darkSlate),
+                ? const ColorScheme.dark(primary: primaryNavy, onPrimary: Colors.white, surface: Color(0xFF1E293B), onSurface: Colors.white)
+                : const ColorScheme.light(primary: primaryNavy, onSurface: Color(0xFF1E293B)),
             dialogTheme: DialogTheme(
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(28))),
@@ -598,9 +607,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-        child: Dialog(
+      builder: (ctx) => Dialog(
           backgroundColor: Colors.transparent,
           elevation: 0,
           child: Container(
@@ -610,7 +617,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                    color: darkSlate.withOpacity(0.15),
+                    color: Color(0xFF1E293B).withOpacity(0.15),
                     blurRadius: 40,
                     offset: const Offset(0, 20))
               ],
@@ -619,18 +626,18 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(error == null ? Icons.check_circle_rounded : Icons.warning_rounded,
-                    color: error == null ? Colors.green : Colors.orange, size: 80),
+                    color: error == null ? const Color(0xFF00A389) : const Color(0xFFF59E0B), size: 80),
                 const SizedBox(height: 24),
                 Text(error == null ? "Request Sent!" : "Request Sent (PDF Error)",
                     textAlign: TextAlign.center,
                     style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.w900,
-                        color: darkSlate)),
+                        color: Color(0xFF1E293B))),
                 const SizedBox(height: 12),
                 Text("Your application has been received.",
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: softText, fontSize: 15)),
+                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 15)),
                 if (error != null) ...[
                    const SizedBox(height: 12),
                    Flexible( // ✅ Added Flexible to prevent overflow
@@ -664,12 +671,12 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
                           ),
                         );
                       },
-                      icon: const Icon(Icons.download_rounded, color: primaryPurple),
+                      icon: const Icon(Icons.download_rounded, color: primaryNavy),
                       label: const Text("Download Application",
                           style: TextStyle(
-                              color: primaryPurple, fontWeight: FontWeight.bold)),
+                              color: primaryNavy, fontWeight: FontWeight.bold)),
                       style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: primaryPurple, width: 2),
+                          side: const BorderSide(color: primaryNavy, width: 2),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16))),
                     ),
@@ -690,7 +697,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
                       ); // Navigate to home and clear stack
                     },
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: darkSlate,
+                        backgroundColor: Color(0xFF1E293B),
                         shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16))),
                     child: const Text("Return Home",
@@ -702,14 +709,12 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
             ),
           ),
         ),
-      ),
     ).then((_) {
        // Ensure navigation happens even if dialog is dismissed by tapping outside
        if (context.mounted) {
           Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);
        }
     });
-
   }
 
   // --------------------------------------------------
@@ -732,7 +737,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
 
       // Format: APP-YYYY-XXXX (e.g. APP-2026-0042)
       return "APP-$year-${newCount.toString().padLeft(4, '0')}";
-    });
+    }).timeout(const Duration(seconds: 10), onTimeout: () => "APP-$year-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}");
   }
 
   Future<void> _submit() async {
@@ -785,9 +790,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
             fileUrl = await CloudinaryService.uploadFileBytes(
               _pickedFile!.bytes!,
               _pickedFile!.name,
-            );
+            ).timeout(const Duration(seconds: 15));
           } else if (_pickedFile!.path != null) {
-            fileUrl = await CloudinaryService.uploadFile(XFile(_pickedFile!.path!));
+            fileUrl = await CloudinaryService.uploadFile(XFile(_pickedFile!.path!))
+                .timeout(const Duration(seconds: 15));
           }
         } catch (e) {
           debugPrint("Cloudinary Upload Failed: $e");
@@ -795,7 +801,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       }
 
       // --- FETCH USER DETAILS FIRST ---
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get();
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get().timeout(const Duration(seconds: 10));
       final userData = userDoc.data() ?? {};
       final userName = userData['name'] ?? 'N/A';
       final employeeId = userData['employeeId'] ?? 'N/A';
@@ -828,18 +834,21 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       }
 
       await FirebaseFirestore.instance
-          .collection("leaveRequests") 
+          .collection("leaveRequests")
+          .doc(department)
+          .collection("records")
           .doc(applicationId)
-          .set(data);
+          .set(data)
+          .timeout(const Duration(seconds: 15));
 
-      // 🔔 SEND NOTIFICATION TO ADMIN
-      // Note: In future, we can filter notifications by department too
-      await NotificationService().sendNotification(
-        toUserId: 'admin',
+      // 🔔 SEND NOTIFICATION TO ADMINS (Department Isolated)
+      await NotificationService().notifyAdmins(
         title: 'New Leave Request ($department)',
         body: '$userName ($department) has applied for ${Helpers.getLeaveName(_selected!)}.',
         type: 'request',
         relatedId: applicationId,
+        targetDepartment: department,
+        triggeringUserId: user.uid,
       );
 
       // User details already fetched above
@@ -987,10 +996,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
          _showSuccessOverlay(error: e.toString()); // Fallback with Error Message
       }
       
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
       // Removed direct _showSuccessOverlay call to prevent skipping PDF
     } catch (e) {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
       _showSnackBar("Error: $e");
     }
   }
@@ -1029,7 +1038,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
             if (_selected == 'OD') 
                const Padding(
                  padding: EdgeInsets.only(right: 8.0),
-                 child: Icon(Icons.business_center_rounded, color: primaryPurple, size: 24),
+                 child: Icon(Icons.business_center_rounded, color: primaryNavy, size: 24),
                ),
             Text(_selected == 'OD' ? 'On-Duty Application' : 'Leave Request',
                 style: TextStyle(
@@ -1148,8 +1157,8 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
             style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w900,
-                color: primaryPurple,
-                letterSpacing: 1.2)),
+                color: primaryNavy,
+                letterSpacing: 0.5)),
         Text(subtitle, style: TextStyle(fontSize: 13, color: theme.textTheme.bodySmall?.color)),
       ],
     );
@@ -1178,12 +1187,6 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
     }
 
     return Container(
-      decoration: BoxDecoration(boxShadow: [
-        BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 10))
-      ]),
       child: DropdownButtonFormField<String>(
         value: _selected,
         isExpanded: true, 
@@ -1233,7 +1236,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: isExhausted ? Colors.red : primaryPurple,
+                        color: isExhausted ? Colors.red : primaryNavy,
                       ),
                     ),
                 ],
@@ -1263,21 +1266,14 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
     final theme = Theme.of(context);
     return InkWell(
       onTap: () => _pickDate(isFrom),
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
         decoration: BoxDecoration(
           color: theme.cardColor,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(12),
           border:
-              Border.all(color: active ? primaryPurple : theme.dividerColor, width: 1.5),
-          boxShadow: [
-            BoxShadow(
-                color: active
-                    ? primaryPurple.withOpacity(0.08)
-                    : Colors.black.withOpacity(0.02),
-                blurRadius: 15)
-          ],
+              Border.all(color: active ? primaryNavy : theme.dividerColor, width: 1.5),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1308,7 +1304,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
-          color: darkSlate, borderRadius: BorderRadius.circular(18)),
+          color: primaryNavy, borderRadius: BorderRadius.circular(12)),
       child: Center(
           child: Text("$days Working Days",
               style: const TextStyle(
@@ -1321,12 +1317,6 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
   Widget _buildPremiumField(TextEditingController controller, String hint,
       IconData icon, int maxLines) {
     return Container(
-      decoration: BoxDecoration(boxShadow: [
-        BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 10))
-      ]),
       child: TextFormField(
         controller: controller,
         maxLines: maxLines,
@@ -1379,7 +1369,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
             else
               Icon(
                 Icons.cloud_upload_rounded,
-                color: primaryPurple,
+                color: primaryNavy,
                 size: 28),
             const SizedBox(height: 8),
             Text(isPicked ? "File Selected: ${_pickedFile!.name}" : "Upload Document (PDF/Image)",
@@ -1396,16 +1386,10 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
   Widget _buildGradientSubmitButton() {
     return Container(
       width: double.infinity,
-      height: 60,
+      height: 56,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(colors: [primaryPurple, accentPurple]),
-        boxShadow: [
-          BoxShadow(
-              color: primaryPurple.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 10))
-        ],
+        color: primaryNavy,
+        borderRadius: BorderRadius.circular(12),
       ),
       child: ElevatedButton(
         onPressed: _loading ? null : _submit,
@@ -1436,16 +1420,16 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       labelText: label,
       labelStyle: TextStyle(
           color: theme.textTheme.bodySmall?.color, fontSize: 13, fontWeight: FontWeight.w600),
-      prefixIcon: Icon(icon, color: primaryPurple, size: 22),
+      prefixIcon: Icon(icon, color: primaryNavy, size: 20),
       filled: true,
       fillColor: theme.cardColor,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: theme.dividerColor)),
       focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(20),
-          borderSide: const BorderSide(color: primaryPurple, width: 2)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primaryNavy, width: 2)),
     );
   }
   pw.TableRow _buildPdfRow(String label, String value, pw.Font font, pw.Font fontBold) {
@@ -1469,20 +1453,14 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _isHalfDay ? primaryPurple : theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.02),
-              blurRadius: 10,
-              offset: const Offset(0, 5))
-        ],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _isHalfDay ? primaryNavy : theme.dividerColor),
       ),
       child: Column(
         children: [
           Row(
             children: [
-              const Icon(Icons.pie_chart_rounded, color: primaryPurple, size: 24),
+              const Icon(Icons.pie_chart_rounded, color: primaryNavy, size: 24),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -1495,7 +1473,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
               ),
               Switch.adaptive(
                 value: _isHalfDay,
-                activeColor: primaryPurple,
+                activeColor: primaryNavy,
                 onChanged: (val) {
                   setState(() {
                     _isHalfDay = val;
@@ -1514,7 +1492,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
              ),
              Row(
                children: [
-                 const Text("Session:", style: TextStyle(color: softText, fontWeight: FontWeight.bold)),
+                 const Text("Session:", style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
                  const SizedBox(width: 16),
                  Expanded(
                    child: Row(
@@ -1541,14 +1519,14 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: selected ? primaryPurple.withOpacity(0.1) : Colors.transparent,
+          color: selected ? primaryNavy.withOpacity(0.1) : Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? primaryPurple : Colors.grey.withOpacity(0.3)),
+          border: Border.all(color: selected ? primaryNavy : Colors.grey.withOpacity(0.3)),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: selected ? primaryPurple : Theme.of(context).textTheme.bodySmall?.color,
+            color: selected ? primaryNavy : Theme.of(context).textTheme.bodySmall?.color,
             fontWeight: FontWeight.bold,
             fontSize: 13
           ),
@@ -1562,14 +1540,14 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
       decoration: BoxDecoration(
          color: cardBg,
          borderRadius: BorderRadius.circular(12),
-         border: Border.all(color: glassBorder)
+         border: Border.all(color: const Color(0xFFE2E8F0))
       ),
       child: CheckboxListTile(
         title: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodySmall?.color)),
         value: value,
         onChanged: onChanged,
         dense: true,
-        activeColor: primaryPurple,
+        activeColor: primaryNavy,
         contentPadding: const EdgeInsets.symmetric(horizontal: 8),
         visualDensity: VisualDensity.compact,
         controlAffinity: ListTileControlAffinity.leading,
@@ -1623,7 +1601,7 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 13,
-            color: isDisabled ? Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.4) : (isActive ? primaryPurple : Theme.of(context).textTheme.bodySmall?.color),
+            color: isDisabled ? Theme.of(context).textTheme.bodySmall?.color?.withOpacity(0.4) : (isActive ? primaryNavy : Theme.of(context).textTheme.bodySmall?.color),
           ),
         ),
       ),

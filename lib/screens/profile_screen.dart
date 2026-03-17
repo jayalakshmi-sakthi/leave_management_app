@@ -33,14 +33,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   List<String> _academicYears = [];
   String? _selectedYear;
 
-  // --- Premium Palette ---
-  // --- Premium Palette ---
-  static const Color primaryPurple = Color(0xFF7C3AED); // Violet 600
-  static const Color accentPurple = Color(0xFF5B21B6); // Violet 800
-  // static const Color scaffoldBg = Color(0xFFF8FAFC); // Use Theme
-  // static const Color darkSlate = Color(0xFF0F172A); // Use Theme
-  // static const Color softText = Color(0xFF64748B); // Use Theme
-  // static const Color cardBg = Colors.white; // Use Theme
+  // Colors defined inline as const Color(0xFF001C3D) / const Color(0xFF003366)
 
   @override
   void initState() {
@@ -101,11 +94,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         flexibleSpace: Container(
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              colors: [primaryPurple, accentPurple],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
+            color: Color(0xFF001C3D),
           ),
         ),
         title: const Text("My Profile",
@@ -156,10 +145,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(color: primaryPurple.withOpacity(0.2), width: 4)),
+                border: Border.all(color: const Color(0xFF001C3D).withOpacity(0.2), width: 4)),
             child: CircleAvatar(
               radius: 50,
-              backgroundColor: primaryPurple.withOpacity(0.1),
+              backgroundColor: const Color(0xFF001C3D).withOpacity(0.1),
               backgroundImage: _data!['profilePicUrl'] != null 
                   ? NetworkImage(_data!['profilePicUrl']) 
                   : null,
@@ -168,7 +157,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       style: const TextStyle(
                           fontSize: 40,
                           fontWeight: FontWeight.w900,
-                          color: primaryPurple))
+                          color: const Color(0xFF001C3D)))
                   : null,
             ),
           ),
@@ -191,13 +180,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
             decoration: BoxDecoration(
-                color: primaryPurple.withOpacity(0.1),
+                color: const Color(0xFF001C3D).withOpacity(0.1),
                 borderRadius: BorderRadius.circular(20)),
             child: Text(empId,
                 style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: empId == 'Not Assigned' ? Colors.orange : primaryPurple,
+                    color: empId == 'Not Assigned' ? const Color(0xFFF59E0B) : const Color(0xFF001C3D),
                     letterSpacing: 1)),
           ),
           const SizedBox(height: 40),
@@ -242,20 +231,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w900,
-                  color: primaryPurple,
+                  color: const Color(0xFF001C3D),
                   letterSpacing: 1.2)),
         ),
         Container(
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
               color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
-                    blurRadius: 20,
-                    offset: const Offset(0, 10))
-              ]),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
           child: Column(
             children: [
               // Year Selector
@@ -294,7 +279,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           Row(
                             children: [
-                              Expanded(child: _statCard(stats['total']!, "Total", Icons.folder_open_rounded, primaryPurple)),
+                              Expanded(child: _statCard(stats['total']!, "Total", Icons.folder_open_rounded, const Color(0xFF001C3D))),
                               const SizedBox(width: 12),
                               Expanded(child: _statCard(stats['pending']!, "Pending", Icons.hourglass_empty_rounded, const Color(0xFFF59E0B))),
                             ],
@@ -337,7 +322,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final uid = _auth.currentUser?.uid;
     if (uid == null) return {'total': 0, 'pending': 0, 'approved': 0, 'rejected': 0};
 
+    final department = _data?['department'] ?? 'General';
     final snap = await _fire.collection('leaveRequests')
+        .doc(department)
+        .collection('records')
         .where('userId', isEqualTo: uid)
         .where('academicYearId', isEqualTo: year)
         .get();
@@ -383,16 +371,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-            color: primaryPurple.withOpacity(0.05),
+            color: const Color(0xFF001C3D).withOpacity(0.05),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: primaryPurple.withOpacity(0.1))),
+            border: Border.all(color: const Color(0xFF001C3D).withOpacity(0.1))),
         child: Column(
           children: [
-            Icon(icon, color: primaryPurple, size: 24),
+            Icon(icon, color: const Color(0xFF001C3D), size: 24),
             const SizedBox(height: 8),
             Text(label,
                 style: const TextStyle(
-                    fontSize: 12, fontWeight: FontWeight.bold, color: primaryPurple)),
+                    fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF001C3D))),
           ],
         ),
       ),
@@ -411,8 +399,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     try {
       // 1. Fetch leaves for the selected year
+      final userDept = _data?['department'] ?? 'General';
       final leaveSnap = await _fire
           .collection("leaveRequests")
+          .doc(userDept)
+          .collection('records')
           .where('userId', isEqualTo: uid)
           .where('academicYearId', isEqualTo: _selectedYear)
           .get();
@@ -425,7 +416,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       }
 
       // 2. Fetch leave types configuration
-      final userDept = _data?['department'] ?? 'General';
       final leaveTypes = await _fs.getLeaveTypes(department: userDept);
       
       // 3. Add Comp-Off as a leave type
@@ -469,8 +459,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (uid == null) return;
 
     // Fetch ONLY Approved leaves for the calendar
+    final userDept = _data?['department'] ?? 'General';
     final snap = await _fire
         .collection("leaveRequests")
+        .doc(userDept)
+        .collection('records')
         .where('userId', isEqualTo: uid)
         .where('academicYearId', isEqualTo: _selectedYear)
         .where('status', isEqualTo: 'Approved')
@@ -546,7 +539,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       rightChevronIcon: Icon(Icons.chevron_right, color: textColor),
                    ),
                    calendarStyle: CalendarStyle(
-                     todayDecoration: const BoxDecoration(color: primaryPurple, shape: BoxShape.circle),
+                     todayDecoration: const BoxDecoration(color: const Color(0xFF001C3D), shape: BoxShape.circle),
                      markerDecoration: const BoxDecoration(color: Colors.transparent),
                      defaultTextStyle: TextStyle(color: textColor), // Explicit text
                      weekendTextStyle: const TextStyle(color: Color(0xFFF43F5E)),
@@ -603,9 +596,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                  color: primaryPurple.withOpacity(0.05),
+                  color: const Color(0xFF001C3D).withOpacity(0.05),
                   borderRadius: BorderRadius.circular(12)),
-              child: Icon(icon, color: primaryPurple, size: 22)),
+              child: Icon(icon, color: const Color(0xFF001C3D), size: 22)),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -699,7 +692,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         decoration: BoxDecoration(
                           color: Colors.grey[200],
                           shape: BoxShape.circle,
-                          border: Border.all(color: primaryPurple.withOpacity(0.2), width: 4),
+                          border: Border.all(color: const Color(0xFF001C3D).withOpacity(0.2), width: 4),
                           image: newImageBytes != null 
                               ? DecorationImage(image: MemoryImage(newImageBytes!), fit: BoxFit.cover)
                               : (_data?['profilePicUrl'] != null 
@@ -707,7 +700,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   : null),
                         ),
                         child: (newImageBytes == null && _data?['profilePicUrl'] == null)
-                            ? Center(child: Text((nameCtrl.text.isNotEmpty ? nameCtrl.text[0] : 'U').toUpperCase(), style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: primaryPurple)))
+                            ? Center(child: Text((nameCtrl.text.isNotEmpty ? nameCtrl.text[0] : 'U').toUpperCase(), style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold, color: const Color(0xFF001C3D))))
                             : null,
                       ),
                        Positioned(
@@ -715,7 +708,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         right: 0,
                         child: Container(
                           padding: const EdgeInsets.all(8),
-                          decoration: const BoxDecoration(color: primaryPurple, shape: BoxShape.circle),
+                          decoration: const BoxDecoration(color: const Color(0xFF001C3D), shape: BoxShape.circle),
                           child: const Icon(Icons.camera_alt_rounded, color: Colors.white, size: 16),
                         ),
                       )
@@ -738,9 +731,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   value: Helpers.departments.contains(selectedDept) ? selectedDept : null,
                   decoration: InputDecoration(
                     labelText: "Department",
-                    prefixIcon: const Icon(Icons.domain_rounded, color: primaryPurple),
+                    prefixIcon: const Icon(Icons.domain_rounded, color: const Color(0xFF001C3D)),
                     filled: true,
-                    fillColor: primaryPurple.withOpacity(0.03),
+                    fillColor: const Color(0xFF001C3D).withOpacity(0.03),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   ),
                   items: Helpers.departments.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
@@ -790,7 +783,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       }
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: primaryPurple,
+                      backgroundColor: const Color(0xFF001C3D),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 0,
                     ),
@@ -814,12 +807,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: InputDecoration(
         labelText: label,
         helperText: helper,
-        prefixIcon: Icon(icon, color: primaryPurple),
+        prefixIcon: Icon(icon, color: const Color(0xFF001C3D)),
         filled: true,
-        fillColor: primaryPurple.withOpacity(0.03),
+        fillColor: const Color(0xFF001C3D).withOpacity(0.03),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: primaryPurple, width: 1.5)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: const Color(0xFF001C3D), width: 1.5)),
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       ),
     );
