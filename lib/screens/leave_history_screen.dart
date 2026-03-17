@@ -167,7 +167,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
     final status = (d['status'] ?? 'Pending').toString();
     final statusCol = Helpers.getStatusColor(status);
 
-    // --- CASE 1: COMP OFF REQUEST ---
+    // --- CASE 1: COMP OFF EARN REQUEST ---
     if (activityType == 'comp_off') {
        final workedDateStr = d['workedDate'];
        DateTime? from;
@@ -189,7 +189,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
               decoration: BoxDecoration(
                   color: primaryNavy.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
               child: const Icon(Icons.star_rounded, color: primaryNavy, size: 24)),
-          title: Text('Comp-Off Request',
+          title: Text('Comp-Off Credit',
               style: TextStyle(
                   fontWeight: FontWeight.w800, fontSize: 15, color: Theme.of(context).textTheme.titleMedium?.color)),
           subtitle: Padding(
@@ -223,14 +223,17 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
             Navigator.pushNamed(
               context, 
               AppRoutes.compOffDetail,
-              arguments: d['id'],
+              arguments: {
+                'docId': id,
+                'department': d['department']
+              },
             );
           },
         ),
       );
     }
 
-    // --- CASE 2: REGULAR LEAVE ---
+    // --- CASE 2: REGULAR LEAVE / OD / COMP-OFF USAGE ---
     // Robust Date Parsing Helper
     DateTime safeDate(dynamic val) {
       if (val is Timestamp) return val.toDate();
@@ -249,7 +252,7 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
       margin: const EdgeInsets.only(bottom: 14),
       decoration: _neatCard(hasBorder: true),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), // Exact match to Home
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: Container(
             width: 48,
             height: 48,
@@ -258,17 +261,16 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
             child: Icon(icon, color: Helpers.getLeaveColor(leaveType), size: 20)),
         title: Text(displayType,
             style: TextStyle(
-                fontWeight: FontWeight.w800, fontSize: 15, color: Theme.of(context).textTheme.titleMedium?.color)), // Exact match: 15
+                fontWeight: FontWeight.w800, fontSize: 15, color: Theme.of(context).textTheme.titleMedium?.color)),
         subtitle: Padding(
-          padding: const EdgeInsets.only(top: 4.0), // Exact match: 4.0
+          padding: const EdgeInsets.only(top: 4.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                   "${DateFormat('MMM dd, yyyy').format(from)} - ${DateFormat('MMM dd, yyyy').format(to)}",
-                  style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13)), // Exact match: 13, regular weight
+                  style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13)),
               
-              // Added Days info subtly to not break alignment heavily
                const SizedBox(height: 2),
                Text(
               "${d['numberOfDays']} Days",
@@ -289,13 +291,12 @@ class _LeaveHistoryScreenState extends State<LeaveHistoryScreen> {
                   letterSpacing: 0.5)),
         ),
         onTap: () {
+          // ✅ Standard Redirection for all other leave types
           if (id.isNotEmpty) {
             Navigator.pushNamed(context, '/detail', arguments: {
               'leaveId': id,
-              'academicYearId': _academicYear // Pass key correctly! (was 'academicYear' in prev code, verified DetailScreen expects 'academicYearId' usually? Let's check. Home used 'academicYearId'. I'll use 'academicYearId' key to be safe, or check DetailScreen)
-              // Actually, previous code: 'academicYear': _academicYear
-              // HomeScreen code: 'academicYearId': d['academicYearId']
-              // I will use 'academicYearId' key as it matches the model.
+              'academicYearId': d['academicYearId'] ?? _academicYear,
+              'department': d['department'] // Pass department from the record
             });
           }
         },

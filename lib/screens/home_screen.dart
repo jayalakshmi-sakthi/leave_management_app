@@ -31,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _name = "";
   String _employeeId = "";
   String _role = "";
+  String _userDept = "General"; // ✅ Added
 
   // --- Dynamic Data ---
   Map<String, dynamic> _leaveBalances = {}; 
@@ -231,6 +232,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _name = snap.data()?['name'] ?? 'Employee';
         _employeeId = manualId.isNotEmpty ? manualId : empId;
         _role = snap.data()?['role'] ?? 'staff';
+        _userDept = snap.data()?['department'] ?? 'General'; // ✅ Added
       });
     }
   }
@@ -990,10 +992,10 @@ class _HomeScreenState extends State<HomeScreen> {
     final activityType = d['activityType'] ?? 'leave';
     final status = (d['status'] ?? 'Pending').toString();
     final statusCol = Helpers.getStatusColor(status);
+    final id = d['id'] ?? d['applicationId'] ?? '';
 
-    // --- CASE 1: COMP OFF REQUEST ---
+    // --- CASE 1: COMP OFF EARN REQUEST ---
     if (activityType == 'comp_off') { 
-      // Note: Data comes from 'compOffRequests' collection
       final workedDateStr = d['workedDate'];
       DateTime? workedDate;
       if (workedDateStr != null) {
@@ -1016,14 +1018,14 @@ class _HomeScreenState extends State<HomeScreen> {
             child: const Icon(Icons.star_rounded, color: primaryNavy, size: 24),
           ),
           title: Text(
-            'Comp-Off Request',
+            'Comp-Off Credit',
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Theme.of(context).textTheme.titleMedium?.color),
           ),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4.0),
             child: Text(
               workedDate != null
-                  ? 'Worked on ${DateFormat('MMM dd').format(workedDate)} • $days day(s)' 
+                  ? 'Worked on ${DateFormat('MMM dd').format(workedDate)} • $days Day(s)' 
                   : 'Comp-Off Earn Request',
               style: TextStyle(color: Theme.of(context).textTheme.bodySmall?.color, fontSize: 13),
             ),
@@ -1033,14 +1035,14 @@ class _HomeScreenState extends State<HomeScreen> {
             Navigator.pushNamed(
               context, 
               AppRoutes.compOffDetail,
-              arguments: d['id'],
+              arguments: {'docId': id, 'department': d['department'] ?? _userDept},
             );
           },
         ),
       );
     } 
     
-    // --- CASE 2: REGULAR LEAVE ---
+    // --- CASE 2: REGULAR LEAVE / OD / COMP-OFF USAGE ---
     else {
       DateTime parseDate(dynamic v) {
         if (v is Timestamp) return v.toDate();
@@ -1050,9 +1052,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final from = parseDate(d['fromDate']);
       final to = parseDate(d['toDate']);
-      final leaveType = d['leaveType'].toString();
+      final leaveType = d['leaveType']?.toString() ?? 'Leave';
       
-      // Use Cached Dynamic Style
       final style = _styleCache[leaveType] ?? {
         'color': Helpers.getLeaveColor(leaveType),
         'icon': Helpers.getLeaveIcon(leaveType)
@@ -1078,7 +1079,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           title: Text(
             displayType,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: textMain),
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15, color: Theme.of(context).textTheme.titleMedium?.color),
           ),
           subtitle: Padding(
             padding: const EdgeInsets.only(top: 4.0),
@@ -1089,14 +1090,14 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           trailing: _buildStatusBadge(status, statusCol),
           onTap: () {
-             final leaveId = d['id'] ?? d['applicationId'];
-             if (leaveId != null) {
+             if (id.isNotEmpty) {
                Navigator.pushNamed(
                  context, 
                  '/detail', 
                  arguments: {
-                   'leaveId': leaveId, 
-                   'academicYearId': d['academicYearId'] ?? academicYear
+                   'leaveId': id, 
+                   'academicYearId': d['academicYearId'] ?? academicYear,
+                   'department': d['department'] ?? _userDept,
                  }
                );
              }

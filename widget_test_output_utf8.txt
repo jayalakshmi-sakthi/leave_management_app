@@ -1,0 +1,138 @@
+﻿00:00 +0: loading C:/CAREER PROJECTS/leave_management_app/test/widget_test.dart
+00:00 +0: Splash screen shows branding
+ΓòÉΓòÉΓòí EXCEPTION CAUGHT BY WIDGETS LIBRARY Γò₧ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+The following FirebaseException was thrown building ValueListenableBuilder<ThemeMode>(dirty, state:
+_ValueListenableBuilderState<ThemeMode>#0605a):
+[core/no-app] No Firebase App '[DEFAULT]' has been created - call Firebase.initializeApp()
+
+The relevant error-causing widget was:
+  ValueListenableBuilder<ThemeMode>
+  ValueListenableBuilder:file:///C:/CAREER%20PROJECTS/leave_management_app/lib/main.dart:129:12
+
+When the exception was thrown, this was the stack:
+#0      MethodChannelFirebase.app (package:firebase_core_platform_interface/src/method_channel/method_channel_firebase.dart:190:5)
+#1      Firebase.app (package:firebase_core/src/firebase.dart:79:41)
+#2      FirebaseAuth.instance (package:firebase_auth/src/firebase_auth.dart:38:47)
+#3      LeaveXApp.build.<anonymous closure> (package:leave_management_app/main.dart:203:34)
+#4      _ValueListenableBuilderState.build (package:flutter/src/widgets/value_listenable_builder.dart:141:26)
+#5      StatefulElement.build (package:flutter/src/widgets/framework.dart:5743:27)
+#6      ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5631:15)
+#7      StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5794:11)
+#8      Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#9      ComponentElement._firstBuild (package:flutter/src/widgets/framework.dart:5613:5)
+#10     StatefulElement._firstBuild (package:flutter/src/widgets/framework.dart:5785:11)
+#11     ComponentElement.mount (package:flutter/src/widgets/framework.dart:5607:5)
+...     Normal element mounting (7 frames)
+#18     Element.inflateWidget (package:flutter/src/widgets/framework.dart:4480:16)
+#19     Element.updateChild (package:flutter/src/widgets/framework.dart:3957:20)
+#20     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#21     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#22     ProxyElement.update (package:flutter/src/widgets/framework.dart:5960:5)
+#23     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:112:11)
+#24     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#25     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#26     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5794:11)
+#27     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#28     StatefulElement.update (package:flutter/src/widgets/framework.dart:5817:5)
+#29     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#30     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#31     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#32     ProxyElement.update (package:flutter/src/widgets/framework.dart:5960:5)
+#33     _InheritedNotifierElement.update (package:flutter/src/widgets/inherited_notifier.dart:112:11)
+#34     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#35     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#36     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5794:11)
+#37     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#38     StatefulElement.update (package:flutter/src/widgets/framework.dart:5817:5)
+#39     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#40     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#41     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5794:11)
+#42     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#43     StatefulElement.update (package:flutter/src/widgets/framework.dart:5817:5)
+#44     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#45     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#46     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#47     ProxyElement.update (package:flutter/src/widgets/framework.dart:5960:5)
+#48     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#49     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#50     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5794:11)
+#51     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#52     StatefulElement.update (package:flutter/src/widgets/framework.dart:5817:5)
+#53     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#54     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#55     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#56     ProxyElement.update (package:flutter/src/widgets/framework.dart:5960:5)
+#57     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#58     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#59     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#60     ProxyElement.update (package:flutter/src/widgets/framework.dart:5960:5)
+#61     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#62     _RawViewElement._updateChild (package:flutter/src/widgets/view.dart:465:16)
+#63     _RawViewElement.update (package:flutter/src/widgets/view.dart:552:5)
+#64     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#65     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#66     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#67     StatelessElement.update (package:flutter/src/widgets/framework.dart:5707:5)
+#68     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#69     ComponentElement.performRebuild (package:flutter/src/widgets/framework.dart:5656:16)
+#70     StatefulElement.performRebuild (package:flutter/src/widgets/framework.dart:5794:11)
+#71     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#72     StatefulElement.update (package:flutter/src/widgets/framework.dart:5817:5)
+#73     Element.updateChild (package:flutter/src/widgets/framework.dart:3941:15)
+#74     RootElement._rebuild (package:flutter/src/widgets/binding.dart:1636:16)
+#75     RootElement.update (package:flutter/src/widgets/binding.dart:1614:5)
+#76     RootElement.performRebuild (package:flutter/src/widgets/binding.dart:1628:7)
+#77     Element.rebuild (package:flutter/src/widgets/framework.dart:5347:7)
+#78     BuildScope._tryRebuild (package:flutter/src/widgets/framework.dart:2694:15)
+#79     BuildScope._flushDirtyElements (package:flutter/src/widgets/framework.dart:2753:11)
+#80     BuildOwner.buildScope (package:flutter/src/widgets/framework.dart:3048:18)
+#81     AutomatedTestWidgetsFlutterBinding.drawFrame (package:flutter_test/src/binding.dart:1428:19)
+#82     RendererBinding._handlePersistentFrameCallback (package:flutter/src/rendering/binding.dart:475:5)
+#83     SchedulerBinding._invokeFrameCallback (package:flutter/src/scheduler/binding.dart:1397:15)
+#84     SchedulerBinding.handleDrawFrame (package:flutter/src/scheduler/binding.dart:1318:9)
+#85     AutomatedTestWidgetsFlutterBinding.pump.<anonymous closure> (package:flutter_test/src/binding.dart:1283:9)
+#88     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#89     AutomatedTestWidgetsFlutterBinding.pump (package:flutter_test/src/binding.dart:1270:27)
+#90     WidgetTester.pumpWidget.<anonymous closure> (package:flutter_test/src/widget_tester.dart:608:22)
+#93     TestAsyncUtils.guard (package:flutter_test/src/test_async_utils.dart:74:41)
+#94     WidgetTester.pumpWidget (package:flutter_test/src/widget_tester.dart:605:27)
+#95     main.<anonymous closure> (file:///C:/CAREER%20PROJECTS/leave_management_app/test/widget_test.dart:8:18)
+#96     testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:189:29)
+<asynchronous suspension>
+#97     TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1027:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided 5 frames from dart:async and package:stack_trace)
+
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+ΓòÉΓòÉΓòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Γò₧ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+The following TestFailure was thrown running a test:
+Expected: exactly one matching candidate
+  Actual: _TextWidgetFinder:<Found 0 widgets with text "LeaveX": []>
+   Which: means none were found but one was expected
+
+When the exception was thrown, this was the stack:
+#4      main.<anonymous closure> (file:///C:/CAREER%20PROJECTS/leave_management_app/test/widget_test.dart:11:5)
+<asynchronous suspension>
+#5      testWidgets.<anonymous closure>.<anonymous closure> (package:flutter_test/src/widget_tester.dart:189:15)
+<asynchronous suspension>
+#6      TestWidgetsFlutterBinding._runTestBody (package:flutter_test/src/binding.dart:1027:5)
+<asynchronous suspension>
+<asynchronous suspension>
+(elided one frame from package:stack_trace)
+
+This was caught by the test expectation on the following line:
+  file:///C:/CAREER%20PROJECTS/leave_management_app/test/widget_test.dart line 11
+The test description was:
+  Splash screen shows branding
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+ΓòÉΓòÉΓòí EXCEPTION CAUGHT BY FLUTTER TEST FRAMEWORK Γò₧ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+The following message was thrown:
+Multiple exceptions (2) were detected during the running of the current test, and at least one was
+unexpected.
+ΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉΓòÉ
+00:00 +0 -1: Splash screen shows branding [E]
+  Test failed. See exception logs above.
+  The test description was: Splash screen shows branding
+  
+00:01 +0 -1: Some tests failed.

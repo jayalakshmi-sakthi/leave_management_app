@@ -237,11 +237,33 @@ class FirestoreService {
     return docId;
   }
 
-  Future<Map<String, dynamic>?> getLeaveById(String id, String academicYearId) async {
-    // Search in all departments if necessary, or pass department
-    final snap = await _fire.collectionGroup('records').where('id', isEqualTo: id).get();
-    if (snap.docs.isNotEmpty) return snap.docs.first.data();
-    return null;
+  Future<Map<String, dynamic>?> getLeaveById(String id, String academicYearId, {String? department}) async {
+    try {
+      // 1. If department is known, do a DIRECT FETCH (Fastest)
+      if (department != null && department.isNotEmpty) {
+        // Try leaveRequests
+        var doc = await _fire.collection('leaveRequests').doc(department).collection('records').doc(id).get();
+        if (doc.exists) return doc.data();
+
+        // Try compOffRequests
+        doc = await _fire.collection('compOffRequests').doc(department).collection('records').doc(id).get();
+        if (doc.exists) return doc.data();
+      }
+
+      // 2. Fallback: Search across all departments (Slower, requires index)
+      // Using FieldPath.documentId is more robust
+      final snap = await _fire.collectionGroup('records')
+          .where(FieldPath.documentId, isEqualTo: id)
+          .limit(1)
+          .get();
+          
+      if (snap.docs.isNotEmpty) return snap.docs.first.data();
+      
+      return null;
+    } catch (e) {
+      debugPrint("❌ Error fetching leave details: $e");
+      return null;
+    }
   }
 
   Future<void> updateSignedForm(String id, String academicYearId, String url) async {

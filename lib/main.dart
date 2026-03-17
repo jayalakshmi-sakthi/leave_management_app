@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'utils/theme_controller.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
+import 'services/update_service.dart'; // ✅ Added
 
 // Screens
 import 'screens/splash_screen.dart';
@@ -113,6 +114,9 @@ Future<void> main() async {
         print("⚠️ [DART] Notification Service Failed: $e");
         return null;
       });
+
+    // Initialize update service (Web only)
+    UpdateService().init();
   }
 
   print("🏃 [DART] Calling runApp()");
@@ -286,13 +290,15 @@ class LeaveXApp extends StatelessWidget {
                   if (settings.name == AppRoutes.detail) {
                     String? leaveId;
                     String? academicYear;
+                    String? department;
 
                     if (settings.arguments is LeaveDetailArguments) {
                       leaveId = (settings.arguments as LeaveDetailArguments).leaveId;
                     } else if (settings.arguments is Map) {
                       final map = settings.arguments as Map;
                       leaveId = map['leaveId'] as String?;
-                      academicYear = map['academicYear'] as String?;
+                      academicYear = (map['academicYearId'] ?? map['academicYear']) as String?; // ✅ Support both keys
+                      department = map['department'] as String?; // ✅ Added
                     }
 
                     if (leaveId != null) {
@@ -300,6 +306,7 @@ class LeaveXApp extends StatelessWidget {
                         builder: (_) => LeaveDetailScreen(
                           leaveId: leaveId!,
                           academicYearId: academicYear ?? '2024-2025',
+                          department: department,
                         ),
                       );
                     }
@@ -312,10 +319,25 @@ class LeaveXApp extends StatelessWidget {
                       ),
                     );
                   } else if (settings.name == AppRoutes.compOffDetail) {
-                    final docId = settings.arguments as String;
-                    return MaterialPageRoute(
-                      builder: (_) => CompOffDetailScreen(docId: docId),
-                    );
+                    String? docId;
+                    String? department;
+
+                    if (settings.arguments is String) {
+                      docId = settings.arguments as String;
+                    } else if (settings.arguments is Map) {
+                      final map = settings.arguments as Map;
+                      docId = map['docId'] as String?;
+                      department = map['department'] as String?;
+                    }
+
+                    if (docId != null) {
+                      return MaterialPageRoute(
+                        builder: (_) => CompOffDetailScreen(
+                          docId: docId!,
+                          department: department,
+                        ),
+                      );
+                    }
                   }
 
                   return null;

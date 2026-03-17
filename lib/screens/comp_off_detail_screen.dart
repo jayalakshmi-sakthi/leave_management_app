@@ -5,7 +5,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 class CompOffDetailScreen extends StatelessWidget {
   final String docId;
-  const CompOffDetailScreen({super.key, required this.docId});
+  final String? department; // ✅ Added for faster fetching
+
+  const CompOffDetailScreen({super.key, required this.docId, this.department});
 
   @override
   Widget build(BuildContext context) {
@@ -14,17 +16,22 @@ class CompOffDetailScreen extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Comp-Off Request Info", style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance.collection('compOffRequests').doc(docId).get(),
+      body: FutureBuilder<QuerySnapshot>(
+        // ✅ Robust Fetch: Search across all departments using collectionGroup
+        future: FirebaseFirestore.instance
+            .collectionGroup('records')
+            .where(FieldPath.documentId, isEqualTo: docId)
+            .limit(1)
+            .get(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (!snapshot.hasData || !snapshot.data!.exists) {
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return const Center(child: Text("Request not found"));
           }
 
-          final data = snapshot.data!.data() as Map<String, dynamic>;
+          final data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
           
           // Parse Dates
           dynamic workedVal = data['workedDate'];

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' as foundation;
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart'; // ✅ Added
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/firestore_service.dart';
@@ -11,12 +13,14 @@ import 'pdf_preview_screen.dart'; // ✅ Added
 
 class LeaveDetailScreen extends StatefulWidget {
   final String leaveId;
-  final String academicYearId; // ✅ Added
+  final String academicYearId;
+  final String? department; // ✅ Added for faster fetching
 
   const LeaveDetailScreen({
     super.key,
     required this.leaveId,
     required this.academicYearId,
+    this.department,
   });
 
   @override
@@ -40,9 +44,13 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
 
   // ---------------- Load leave details ----------------
   Future<void> _loadLeaveDetails() async {
-    // Now creates the correct query based on Year
-    final info = await _fs.getLeaveById(widget.leaveId, widget.academicYearId);
-    if (mounted) setState(() => _data = info);
+    setState(() => _loading = true); // Set loading while fetching
+    try {
+      final info = await _fs.getLeaveById(widget.leaveId, widget.academicYearId, department: widget.department);
+      if (mounted) setState(() => _data = info);
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   // ---------------- Upload signed form (only if approved) ----------------
@@ -59,72 +67,113 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
       return;
     }
 
-    // Show options: Camera or Gallery
-    final source = await showModalBottomSheet<ImageSource>(
+    // Result variable
+    String? fileUrl;
+
+    // Show options: Camera, Gallery, or File Picker
+    await showModalBottomSheet(
       context: context,
       builder: (ctx) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt),
+              leading: const Icon(Icons.camera_alt, color: Color(0xFF001C3D)),
               title: const Text("Take Photo"),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final picked = await _picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+                if (picked != null) _processAndUpload(picked);
+              },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library),
+              leading: const Icon(Icons.photo_library, color: Color(0xFF001C3D)),
               title: const Text("Choose from Gallery"),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final picked = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                if (picked != null) _processAndUpload(picked);
+              },
             ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf, color: Color(0xFF001C3D)),
+              title: const Text("Upload PDF / File"),
+              onTap: () async {
+                Navigator.pop(ctx);
+                final result = await FilePicker.platform.pickFiles(
+                  type: FileType.custom,
+                  allowedExtensions: ['pdf', 'jpg', 'jpeg', 'png'],
+                  withData: foundation.kIsWeb, // Important for Web
+                );
+                
+                if (result != null && result.files.single.path != null || (foundation.kIsWeb && result?.files.single.bytes != null)) {
+                   _uploadFilePickerResult(result!.files.single);
+                }
+              },
+            ),
+            const SizedBox(height: 12),
           ],
         ),
       ),
     );
+  }
 
-    if (source == null) return;
-
-    final picked = await _picker.pickImage(
-      source: source,
-      imageQuality: 70, // Optimize size
-    );
-    if (picked == null) return;
-
+  // Helper: Upload file from ImagePicker
+  Future<void> _processAndUpload(XFile file) async {
     setState(() => _uploading = true);
-
     try {
-      // 1. Upload to Cloudinary
-      // 'picked' is XFile, CloudinaryService expects XFile
-      final url = await CloudinaryService.uploadFile(picked);
-
-      if (url == null) throw Exception("Upload returned null");
-
-      // 2. Update Firestore with NEW field 'finalSignedFormUrl'
-      await _fs.updateSignedForm(widget.leaveId, widget.academicYearId, url);
-
-      // 3. Refresh UI
-      if (mounted) {
-        setState(() {
-          _data!['finalSignedFormUrl'] = url; // <--- CHANGED
-        });
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Signed copy uploaded successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
+      final url = await CloudinaryService.uploadFile(file);
+      if (url != null) await _updateFirestoreAndUI(url);
     } catch (e) {
-      debugPrint("Upload Error: $e");
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Upload Failed: $e'), backgroundColor: Colors.red),
-        );
-      }
+      _showError("Upload Failed: $e");
     } finally {
       if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  // Helper: Upload file from FilePicker (Handles Web & Mobile)
+  Future<void> _uploadFilePickerResult(PlatformFile file) async {
+    setState(() => _uploading = true);
+    try {
+      String? url;
+      if (foundation.kIsWeb) {
+        if (file.bytes == null) throw Exception("Failed to read file bytes");
+        url = await CloudinaryService.uploadFileBytes(file.bytes!, file.name);
+      } else {
+        if (file.path == null) throw Exception("Invalid file path");
+        url = await CloudinaryService.uploadFile(XFile(file.path!));
+      }
+
+      if (url != null) {
+        await _updateFirestoreAndUI(url);
+      } else {
+        throw Exception("Upload returned null");
+      }
+    } catch (e) {
+      _showError("Upload Failed: $e");
+    } finally {
+      if (mounted) setState(() => _uploading = false);
+    }
+  }
+
+  // Update Database Logic
+  Future<void> _updateFirestoreAndUI(String url) async {
+    await _fs.updateSignedForm(widget.leaveId, widget.academicYearId, url);
+    if (mounted) {
+      setState(() {
+        _data!['finalSignedFormUrl'] = url;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Uploaded successfully!'), backgroundColor: Colors.green),
+      );
+    }
+  }
+
+  void _showError(String msg) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(msg), backgroundColor: Colors.red),
+      );
     }
   }
 
@@ -144,10 +193,28 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_data == null) {
+    if (_loading) {
       return Scaffold(
         appBar: AppBar(title: const Text("Leave Details")),
         body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_data == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text("Leave Details")),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+              const SizedBox(height: 16),
+              const Text("Record not found", style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text("ID: ${widget.leaveId}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            ],
+          ),
+        ),
       );
     }
 
