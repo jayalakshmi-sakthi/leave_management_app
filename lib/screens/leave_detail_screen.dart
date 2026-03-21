@@ -10,6 +10,7 @@ import '../services/cloudinary_service.dart';
 import '../utils/helpers.dart';
 import '../services/pdf_service.dart'; // ✅ Added
 import 'pdf_preview_screen.dart'; // ✅ Added
+import 'media_viewer_screen.dart'; // ✅ Added
 
 class LeaveDetailScreen extends StatefulWidget {
   final String leaveId;
@@ -177,18 +178,14 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
     }
   }
 
-  // ---------------- Open URL in browser ----------------
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unable to open file: $url')),
-        );
-      }
-    }
+  // ---------------- Open URL in viewer ----------------
+  Future<void> _openUrl(String url, String title) async {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MediaViewerScreen(url: url, title: title),
+      ),
+    );
   }
 
   @override
@@ -290,7 +287,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () => _openUrl(_data!['signedFormUrl']),
+                        onPressed: () => _openUrl(_data!['signedFormUrl'], "Application / Attachment"),
                         icon: const Icon(Icons.description, color: Color(0xFF001C3D)),
                         label: const Text("View Application / Attachment"),
                         style: OutlinedButton.styleFrom(
@@ -309,7 +306,7 @@ class _LeaveDetailScreenState extends State<LeaveDetailScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton.icon(
-                        onPressed: () => _openUrl(_data!['finalSignedFormUrl']),
+                        onPressed: () => _openUrl(_data!['finalSignedFormUrl'], "Signed Copy"),
                         icon: const Icon(Icons.verified_user, color: Colors.green),
                         label: const Text("View Signed Copy"),
                         style: OutlinedButton.styleFrom(

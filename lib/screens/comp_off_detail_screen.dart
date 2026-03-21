@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'media_viewer_screen.dart'; // ✅ Added
 
 class CompOffDetailScreen extends StatelessWidget {
   final String docId;
@@ -201,9 +202,16 @@ class CompOffDetailScreen extends StatelessWidget {
                   const Text("Attached Evidence", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF64748B))),
                   const SizedBox(height: 12),
                   InkWell(
-                    onTap: () async {
-                      final url = Uri.parse(data['proofUrl']);
-                      if (await canLaunchUrl(url)) await launchUrl(url);
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                           builder: (_) => MediaViewerScreen(
+                             url: data['proofUrl'],
+                             title: "Attached Evidence",
+                           )
+                        ),
+                      );
                     },
                     child: Container(
                       padding: const EdgeInsets.all(16),
