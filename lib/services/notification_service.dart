@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:http/http.dart' as http; // ✅ For OneSignal Rest API
+import 'package:onesignal_flutter/onesignal_flutter.dart'; // ✅ For Mobile/Desktop
 import '../main.dart';
 
 @pragma('vm:entry-point')
@@ -26,15 +27,19 @@ class NotificationService {
   Stream<Map<String, dynamic>> get navigationStream => _navController.stream;
 
   Future<void> init() async {
-    // 1. WEB GUARD
-    // On Web, LocalNotifications/Android Channels cause crashes or errors if not handled.
+    // 🔔 ONESIGNAL INIT (Free Layer 2 - Multi-platform)
+    const String appId = '76f30b3e-82fb-48cb-8c8a-88cd994e1a1c';
+    
     if (kIsWeb) {
-      debugPrint("🌍 NotificationService: Running on Web. Using OneSignal.");
-      js.context.callMethod('initOneSignal', ['76f30b3e-82fb-48cb-8c8a-88cd994e1a1c']);
+      debugPrint("🌍 NotificationService: Running on Web. Using JS OneSignal.");
+      js.context.callMethod('initOneSignal', [appId]);
     } else {
-      // 2. ANDROID / iOS SETUP (Mobile Only)
+      // 📱 Mobile / 💻 Desktop Setup (Plugin)
+      OneSignal.initialize(appId);
+      OneSignal.Notifications.requestPermission(true);
+      
       try {
-           // Use defaultTargetPlatform from foundation (web-safe)
+        // Legacy Local Notifications Setup
            if (defaultTargetPlatform == TargetPlatform.android) {
              const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
              const initSettings = InitializationSettings(android: androidSettings);
@@ -106,9 +111,14 @@ class NotificationService {
 
   void setUserId(String? userId) {
     _currentUserId = userId;
-    if (userId != null && kIsWeb) {
-      // 🔗 Link Staff session to OneSignal
-      js.context.callMethod('setOneSignalUser', [userId]);
+    if (userId != null) {
+      if (kIsWeb) {
+        // 🔗 Link Staff session to OneSignal (Web)
+        js.context.callMethod('setOneSignalUser', [userId]);
+      } else {
+        // 🔗 Link Staff session (Mobile/Desktop)
+        OneSignal.login(userId);
+      }
     }
   }
 
