@@ -80,7 +80,7 @@ class PdfService {
     }
 
     // Logic for Content
-    final isCredit = leaveType == 'Comp-Off Earn';
+    final isCredit = leaveType.toUpperCase().contains('COMP-OFF EARN');
     final titleText = isCredit ? "WORK CREDIT APPLICATION FORM" : "LEAVE APPLICATION FORM";
     
     String subjectText;
@@ -109,7 +109,7 @@ class PdfService {
                     pw.Text("(Autonomous)", style: pw.TextStyle(font: fontBold, fontSize: 10)),
                     pw.Text("PERUNDURAI, ERODE - 638 060", style: pw.TextStyle(font: fontBold, fontSize: 10)),
                     pw.SizedBox(height: 10),
-                    pw.Text("LEAVE APPLICATION FORM", style: pw.TextStyle(font: fontBold, fontSize: 12, decoration: pw.TextDecoration.underline)),
+                    pw.Text(titleText, style: pw.TextStyle(font: fontBold, fontSize: 12, decoration: pw.TextDecoration.underline)),
                   ]
                 )
               ),
@@ -129,7 +129,7 @@ class PdfService {
                    if (employeeId != null && employeeId != "0000")
                      _tableRow("Employee ID", employeeId, font, fontBold),
                    _tableRow("Type of Leave", Helpers.getLeaveName(leaveType), font, fontBold),
-                   _tableRow("Period of Leave", dateText, font, fontBold),
+                   _tableRow(isCredit ? "Worked Date" : "Period of Leave", dateText, font, fontBold),
                    _tableRow("No. of Days", durationText, font, fontBold),
                    _tableRow("Reason for Leave", reason, font, fontBold),
                 ]

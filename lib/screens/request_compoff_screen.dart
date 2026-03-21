@@ -458,7 +458,7 @@ class _RequestCompOffScreenState extends State<RequestCompOffScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _isMultiDay ? "From - To Date" : "Work Date",
+                  _isMultiDay ? "From - To Date" : "Worked Date",
                   style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,

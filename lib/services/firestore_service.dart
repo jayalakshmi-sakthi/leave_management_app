@@ -190,21 +190,56 @@ class FirestoreService {
   // 📝 LEAVE & COMP-OFF LOGIC
   // ──────────────────────────────────────────────────────────
 
+  /// Generates a sequential application ID department-wise.
+  /// Example: CSE-CO-2024-0001 or CSE-LV-2024-0001
+  Future<String> generateApplicationId(String department, String prefix) async {
+    final year = DateTime.now().year;
+    final deptSlug = department.replaceAll(' ', '_').toUpperCase();
+    final counterRef = _fire.collection('counters').doc('$deptSlug-$prefix');
+
+    return _fire.runTransaction((transaction) async {
+      final snapshot = await transaction.get(counterRef);
+      int currentCount = 0;
+      if (snapshot.exists) {
+        currentCount = snapshot.data()?['count'] ?? 0;
+      }
+      final newCount = currentCount + 1;
+      transaction.set(counterRef, {'count': newCount}, SetOptions(merge: true));
+
+      // Padding to 4 digits (e.g. 0001)
+      final paddedCount = newCount.toString().padLeft(4, '0');
+      return "$deptSlug-$prefix-$year-$paddedCount";
+    }).timeout(
+      const Duration(seconds: 10),
+      onTimeout: () => "$deptSlug-$prefix-$year-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}",
+    );
+  }
+
   Future<String> submitLeaveRequest(Map<String, dynamic> data) async {
     final department = data['department'] ?? 'General';
+    final typeId = (data['leaveType'] as String? ?? 'LV').toUpperCase();
+    
+    // 🆔 Generate Sequential ID if not provided (ApplyLeaveScreen might still generate it but better here)
+    String appId = data['applicationId'] ?? await generateApplicationId(department, typeId);
+    
     final String docId = _uuid.v4();
     await _fire
         .collection('leaveRequests')
         .doc(department)
         .collection('records')
         .doc(docId)
-        .set({...data, 'id': docId, 'createdAt': FieldValue.serverTimestamp()});
-    return docId;
+        .set({
+      ...data, 
+      'id': docId, 
+      'applicationId': appId, // Ensure it's saved
+      'createdAt': FieldValue.serverTimestamp()
+    });
+    return appId; // Returning applicationId for PDF/UI
   }
 
   Future<String> createCompOffRequest({
     required String userId,
-    required String userName, // ✅ Added
+    required String userName,
     required String employeeId,
     required String department,
     required DateTime fromDate,
@@ -214,6 +249,9 @@ class FirestoreService {
     required bool isMultiDay,
     String? proofUrl,
   }) async {
+    // 🆔 Generate Sequential ID
+    final applicationId = await generateApplicationId(department, 'CO');
+    
     final String docId = _uuid.v4();
     await _fire
         .collection('compOffRequests')
@@ -222,13 +260,14 @@ class FirestoreService {
         .doc(docId)
         .set({
       'id': docId,
+      'applicationId': applicationId, // ✅ ADDED
       'userId': userId,
-      'userName': userName, // ✅ Added
+      'userName': userName,
       'employeeId': employeeId,
       'department': department,
       'fromDate': Timestamp.fromDate(fromDate),
       'toDate': Timestamp.fromDate(toDate),
-      'leaveType': 'COMP-OFF EARN', // ✅ Added for Calendar matching
+      'leaveType': 'COMP-OFF EARN',
       'days': days,
       'description': description,
       'status': 'Pending',
@@ -238,7 +277,7 @@ class FirestoreService {
       'createdAt': FieldValue.serverTimestamp(),
       'academicYearId': getCurrentAcademicYearString(),
     });
-    return docId;
+    return applicationId; // Return sequential ID 
   }
 
   Future<Map<String, dynamic>?> getLeaveById(String id, String academicYearId, {String? department}) async {

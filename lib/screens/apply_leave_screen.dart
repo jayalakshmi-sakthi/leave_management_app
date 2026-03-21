@@ -720,25 +720,6 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
   // --------------------------------------------------
   // 🆔 ID GENERATOR (TRANSACTIONAL)
   // --------------------------------------------------
-  Future<String> _generateApplicationId() async {
-    final year = DateTime.now().year;
-    final ref = FirebaseFirestore.instance.collection('counters').doc('applications');
-
-    return FirebaseFirestore.instance.runTransaction((transaction) async {
-      final snapshot = await transaction.get(ref);
-
-      int currentCount = 0;
-      if (snapshot.exists) {
-        currentCount = snapshot.data()?['count'] ?? 0;
-      }
-
-      final newCount = currentCount + 1;
-      transaction.set(ref, {'count': newCount}, SetOptions(merge: true));
-
-      // Format: APP-YYYY-XXXX (e.g. APP-2026-0042)
-      return "APP-$year-${newCount.toString().padLeft(4, '0')}";
-    }).timeout(const Duration(seconds: 10), onTimeout: () => "APP-$year-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}");
-  }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -777,11 +758,21 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
 
     setState(() => _loading = true);
     try {
+      final fs = FirestoreService();
       final user = FirebaseAuth.instance.currentUser;
-      
-      // 🆔 Generate Sequential ID
-      final applicationId = await _generateApplicationId();
-      
+
+      // --- FETCH USER DETAILS FIRST ---
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get().timeout(const Duration(seconds: 10));
+      final userData = userDoc.data() ?? {};
+      final userName = userData['name'] ?? 'N/A';
+      final employeeId = userData['employeeId'] ?? 'KEC';
+      final department = userData['department'] ?? 'General';
+      final departmentId = userData['departmentId'] ?? 'general';
+
+      // 🆔 Generate Sequential ID (Department & Type Isolated)
+      final String prefix = (_selected ?? 'LV').toUpperCase();
+      final applicationId = await fs.generateApplicationId(department, prefix);
+
       String? fileUrl;
       // ☁️ UPLOAD TO CLOUDINARY IF FILE PICKED
       if (_pickedFile != null) {
@@ -799,14 +790,6 @@ class _ApplyLeaveScreenState extends State<ApplyLeaveScreen>
           debugPrint("Cloudinary Upload Failed: $e");
         }
       }
-
-      // --- FETCH USER DETAILS FIRST ---
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user!.uid).get().timeout(const Duration(seconds: 10));
-      final userData = userDoc.data() ?? {};
-      final userName = userData['name'] ?? 'N/A';
-      final employeeId = userData['employeeId'] ?? 'N/A';
-      final department = userData['department'] ?? 'General';
-      final departmentId = userData['departmentId'] ?? 'general';
 
       final data = {
         "applicationId": applicationId, // ✅ Meaningful ID
