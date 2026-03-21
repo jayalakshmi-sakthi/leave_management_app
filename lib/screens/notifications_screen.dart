@@ -4,7 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../services/notification_service.dart';
 import '../utils/helpers.dart';
-import '../widgets/responsive_wrapper.dart'; // ✅ Added
+import '../widgets/responsive_wrapper.dart';
+import '../main.dart';
 
 class NotificationsScreen extends StatelessWidget {
   final String? departmentFilter; // ✅ Added for admin isolation
@@ -156,7 +157,46 @@ class NotificationsScreen extends StatelessWidget {
                       if (!isRead) {
                         await NotificationService().markAsRead(notif['id']);
                       }
-                      // Navigate if needed
+
+                      // ✅ Redirection Logic
+                      final String? relatedId = notif['relatedId'];
+                      final String? type = notif['type']?.toString();
+                      final String? leaveType = notif['leaveType'];
+                      final String? academicYear = notif['academicYearId'];
+                      final String? department = notif['targetDepartment'];
+
+                      // 1. Account Approval -> Go to Profile
+                      if (type == 'account_approval') {
+                        Navigator.pushNamed(context, '/profile');
+                        return;
+                      }
+
+                      // 2. Info notifications with no related ID -> Do nothing
+                      if (relatedId == null || relatedId.isEmpty) return;
+
+                      // 3. Comp-Off Earn/Credit requests go to CompOffDetail
+                      if (type == 'comp_off' || leaveType == 'Comp-Off Earn') {
+                        Navigator.pushNamed(
+                          context, 
+                          AppRoutes.compOffDetail,
+                          arguments: {
+                            'docId': relatedId,
+                            'department': department,
+                          }
+                        );
+                      } 
+                      // 4. Leave Requests (Regular, OD, Comp-Off Usage) go to LeaveDetail
+                      else if (type == 'request' || type == 'status_change' || leaveType != null) {
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.detail,
+                          arguments: {
+                            'leaveId': relatedId,
+                            'academicYearId': academicYear ?? '2024-2025',
+                            'department': department,
+                          },
+                        );
+                      }
                     },
                     borderRadius: BorderRadius.circular(12),
                     child: Container(

@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/foundation.dart'; // for kIsWeb, defaultTargetPlatform
+import 'dart:js' as js; // ✅ OneSignal Web Interop
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http; // ✅ For OneSignal Rest API
 import '../main.dart';
 
 @pragma('vm:entry-point')
@@ -29,9 +29,8 @@ class NotificationService {
     // 1. WEB GUARD
     // On Web, LocalNotifications/Android Channels cause crashes or errors if not handled.
     if (kIsWeb) {
-      debugPrint("🌍 NotificationService: Running on Web. Skipping Android setup.");
-      // Skip straight to FCM or return if FCM is also partial
-      // We will try FCM only
+      debugPrint("🌍 NotificationService: Running on Web. Using OneSignal.");
+      js.context.callMethod('initOneSignal', ['76f30b3e-82fb-48cb-8c8a-88cd994e1a1c']);
     } else {
       // 2. ANDROID / iOS SETUP (Mobile Only)
       try {
@@ -86,61 +85,17 @@ class NotificationService {
       }
     }
 
-    // 3. FCM SETUP (Safe for Web if Service Worker exists)
-    try {
-      await _fcm.setForegroundNotificationPresentationOptions(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
-      
-      await _fcm.requestPermission(alert: true, badge: true, sound: true);
-
-      // Background Message Handler - CRITICAL: Not supported on Web in the same way or requires worker
-      if (!kIsWeb) {
-         FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    // 🌐 WEB DEEP LINK CHECK
+    if (kIsWeb) {
+      final params = Uri.base.queryParameters;
+      if (params.containsKey('type') && params.containsKey('id')) {
+        debugPrint("🌐 Web Launch Params Detected: $params");
+        // Map URL keys to internal keys
+        final mappedData = Map<String, dynamic>.from(params);
+        mappedData['relatedId'] = params['id'];
+        mappedData['academicYearId'] = params['year'];
+        _navController.add(mappedData);
       }
-
-      FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-        // Broadcast to UI regardless 
-        _navController.add(message.data);
-        
-        // Skip System Tray Notification in Foreground for Staff App 
-        // because listenForNewNotifications handles Firestore document added.
-        debugPrint("🔔 FCM Foreground Message (Staff App): ${message.data}");
-      });
-
-      // Handle Background Click (App Opened)
-      FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-        _handleInteraction(message);
-      });
-      
-      // Check Initial Message (Terminated State)
-      final initialMessage = await _fcm.getInitialMessage();
-      if (initialMessage != null) {
-        _handleInteraction(initialMessage);
-      }
-
-      // Token Refresh
-       _fcm.onTokenRefresh.listen((newToken) {
-        _saveToken(newToken, _currentUserId);
-      });
-
-      // 🌐 WEB DEEP LINK CHECK
-      if (kIsWeb) {
-        final params = Uri.base.queryParameters;
-        if (params.containsKey('type') && params.containsKey('id')) {
-          debugPrint("🌐 Web Launch Params Detected: $params");
-          // Map URL keys to internal keys
-          final mappedData = Map<String, dynamic>.from(params);
-          mappedData['relatedId'] = params['id'];
-          mappedData['academicYearId'] = params['year'];
-          _handleInteraction(RemoteMessage(data: mappedData));
-        }
-      }
-      
-    } catch (e) {
-      debugPrint("⚠️ FCM Init Error: $e");
     }
   }
 
@@ -151,8 +106,9 @@ class NotificationService {
 
   void setUserId(String? userId) {
     _currentUserId = userId;
-    if (userId != null) {
-      _fcm.getToken().then((token) => _saveToken(token, userId));
+    if (userId != null && kIsWeb) {
+      // 🔗 Link Staff session to OneSignal
+      js.context.callMethod('setOneSignalUser', [userId]);
     }
   }
 
@@ -280,8 +236,8 @@ class NotificationService {
         'createdAt': FieldValue.serverTimestamp(),
       });
 
-      // 2. Trigger FCM Push (Background/System Tray)
-      await sendFcmPush(
+      // 2. Trigger OneSignal Push (Background)
+      await sendOneSignalPush(
         toUserId: toUserId,
         title: title,
         body: body,
@@ -297,28 +253,34 @@ class NotificationService {
     }
   }
 
-  Future<void> sendFcmPush({
+  Future<void> sendOneSignalPush({
     required String toUserId,
     required String title,
     required String body,
     Map<String, dynamic>? data,
   }) async {
     try {
-      final userDoc = await _db.collection('users').doc(toUserId).get();
-      final token = userDoc.data()?['fcmToken'];
-      if (token == null) return;
+      // TODO: Paste REST API Key here
+      const String onesignalRestKey = "os_v2_app_xxxxxxxxxxxxxxxxxxxxxxxxxxx"; 
+      const String appId = "76f30b3e-82fb-48cb-8c8a-88cd994e1a1c";
 
-      await _db.collection('fcm_queue').add({
-        'token': token,
-        'title': title,
-        'body': body,
-        'data': data,
-        'status': 'pending',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      debugPrint("🚀 FCM Push Queued for $toUserId");
+      final response = await http.post(
+        Uri.parse('https://onesignal.com/api/v1/notifications'),
+        headers: {
+          'Content-Type': 'application/json; charset=utf-8',
+          'Authorization': 'Basic $onesignalRestKey',
+        },
+        body: jsonEncode({
+          'app_id': appId,
+          'include_external_user_ids': [toUserId],
+          'headings': {'en': title},
+          'contents': {'en': body},
+          'data': data,
+          'web_url': 'https://leave-management-app-f07b8.web.app/#/notifications',
+        }),
+      );
     } catch (e) {
-      debugPrint("FCM Push Error: $e");
+      debugPrint("OneSignal Push Error: $e");
     }
   }
 

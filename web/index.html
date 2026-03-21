@@ -156,6 +156,41 @@
       display: block;
     }
   </style>
+  
+  <!-- 🔔 OneSignal SDK (Free Layer 2 Notifications) -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignal = window.OneSignal || [];
+    
+    // Helper function for Flutter to initialize OneSignal with a Specific App ID
+    window.initOneSignal = function(appId) {
+      console.log("🔔 [OneSignal] Initializing with ID: " + appId);
+      OneSignal.push(async function() {
+        await OneSignal.init({
+          appId: appId,
+          allowLocalhostAsSecureOrigin: true,
+        });
+        console.log("✅ [OneSignal] Staff App initialization complete");
+      });
+    };
+
+    // Helper function for Flutter to set external user ID (mapping to Firestore UID)
+    window.setOneSignalUser = function(externalId) {
+      console.log("🔗 [OneSignal] Linking Staff: " + externalId);
+      OneSignal.push(async function() {
+        await OneSignal.login(externalId);
+        console.log("✅ [OneSignal] User linked");
+      });
+    };
+
+    // Helper function for Flutter to logout
+    window.logoutOneSignal = function() {
+      OneSignal.push(async function() {
+        await OneSignal.logout();
+        console.log("🚪 [OneSignal] Staff logged out");
+      });
+    };
+  </script>
 </head>
 
 <body>

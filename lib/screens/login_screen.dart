@@ -115,7 +115,10 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    if (mounted) Navigator.pushReplacementNamed(context, "/home");
+    if (mounted) {
+      NotificationService().setUserId(user.uid);
+      Navigator.pushReplacementNamed(context, "/home");
+    }
   }
 
   @override

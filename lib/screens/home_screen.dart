@@ -535,34 +535,40 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         
         // 🔔 Notifications
-        Stack(
-          children: [
-            _buildAppBarAction(
-              onTap: () => Navigator.pushNamed(context, '/notifications'),
-              child: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
-            ),
-            StreamBuilder<int>(
-              stream: NotificationService().getUnreadCount(_uid),
-              builder: (context, snapshot) {
-                final count = snapshot.data ?? 0;
-                if (count == 0) return const SizedBox.shrink();
-                return Positioned(
-                  right: 10,
-                  top: 10,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: Colors.redAccent, shape: BoxShape.circle),
-                    constraints: const BoxConstraints(minWidth: 14, minHeight: 14),
-                    child: Text(
-                      '$count',
-                      style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
+        _buildAppBarAction(
+          onTap: () => Navigator.pushNamed(context, '/notifications'),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 22),
+              StreamBuilder<int>(
+                stream: NotificationService().getUnreadCount(_uid),
+                builder: (context, snapshot) {
+                  final count = snapshot.data ?? 0;
+                  if (count == 0) return const SizedBox.shrink();
+                  return Positioned(
+                    right: -4,
+                    top: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.redAccent, 
+                        shape: BoxShape.circle,
+                        border: Border.all(color: primaryNavy, width: 1.5),
+                      ),
+                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                      child: Center(
+                        child: Text(
+                          '$count',
+                          style: const TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                        ),
+                      ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
+                  );
+                },
+              ),
+            ],
+          ),
         ),
 
         // 🚪 Logout

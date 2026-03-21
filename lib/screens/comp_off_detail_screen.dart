@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,36 +12,78 @@ class CompOffDetailScreen extends StatelessWidget {
 
   Future<Map<String, dynamic>?> _fetchData() async {
     try {
-      // 1. Try DIRECT Fetch if department is known (Most Reliable)
-      if (department != null && department!.isNotEmpty) {
-        // Try compOffRequests (Earn)
-        var doc = await FirebaseFirestore.instance
-            .collection('compOffRequests')
-            .doc(department)
-            .collection('records')
-            .doc(docId)
-            .get();
-        if (doc.exists) return doc.data();
-
-        // Try leaveRequests (Usage) - Just in case
-        doc = await FirebaseFirestore.instance
-            .collection('leaveRequests')
-            .doc(department)
-            .collection('records')
-            .doc(docId)
-            .get();
-        if (doc.exists) return doc.data();
+      String? deptToTry = department;
+      
+      // 0. Fallback: If department is unknown, try current user's department
+      if (deptToTry == null || deptToTry.isEmpty) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+          if (userDoc.exists) {
+            deptToTry = userDoc.data()?['department'] as String?;
+          }
+        }
       }
 
-      // 2. Fallback to Collection Group Search (Using 'id' field)
-      final snap = await FirebaseFirestore.instance
+      // 1. DIRECT FETCH (Fastest, avoids index requirements)
+      if (deptToTry != null && deptToTry.isNotEmpty) {
+        // --- 1.1 Try by Document ID ---
+        var doc = await FirebaseFirestore.instance
+            .collection('compOffRequests')
+            .doc(deptToTry)
+            .collection('records')
+            .doc(docId)
+            .get();
+        if (doc.exists) return doc.data();
+
+        doc = await FirebaseFirestore.instance
+            .collection('leaveRequests')
+            .doc(deptToTry)
+            .collection('records')
+            .doc(docId)
+            .get();
+        if (doc.exists) return doc.data();
+
+        // --- 1.2 Try by Field search within department ---
+        final snapC = await FirebaseFirestore.instance
+            .collection('compOffRequests').doc(deptToTry).collection('records')
+            .where('applicationId', isEqualTo: docId).limit(1).get();
+        if (snapC.docs.isNotEmpty) return snapC.docs.first.data();
+
+        final snapL = await FirebaseFirestore.instance
+            .collection('leaveRequests').doc(deptToTry).collection('records')
+            .where('applicationId', isEqualTo: docId).limit(1).get();
+        if (snapL.docs.isNotEmpty) return snapL.docs.first.data();
+      }
+
+      // 2. Fall-safe: Search within user's own records in memory
+      // (Bypasses global index requirements)
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userSnap = await FirebaseFirestore.instance.collectionGroup('records')
+            .where('userId', isEqualTo: user.uid)
+            .get();
+        for (var doc in userSnap.docs) {
+          final data = doc.data();
+          if (doc.id == docId || data['id'] == docId || data['applicationId'] == docId) {
+             return data;
+          }
+        }
+      }
+
+      // 3. Global Search (Backup)
+      final snap = await FirebaseFirestore.instance.collectionGroup('records').where('id', isEqualTo: docId).limit(1).get();
+      if (snap.docs.isNotEmpty) return snap.docs.first.data();
+      
+      // 3.1 Fallback by applicationId (Matches manual Firestore saves)
+      final snap1_5 = await FirebaseFirestore.instance
           .collectionGroup('records')
-          .where('id', isEqualTo: docId)
+          .where('applicationId', isEqualTo: docId)
           .limit(1)
           .get();
-      if (snap.docs.isNotEmpty) return snap.docs.first.data();
+      if (snap1_5.docs.isNotEmpty) return snap1_5.docs.first.data();
 
-      // 3. Last Resort Fallback (Using document ID)
+      // 3.2 Last Resort Fallback (Using document ID)
       final snap2 = await FirebaseFirestore.instance
           .collectionGroup('records')
           .where(FieldPath.documentId, isEqualTo: docId)

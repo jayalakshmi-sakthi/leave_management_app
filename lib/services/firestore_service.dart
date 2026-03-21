@@ -243,30 +243,55 @@ class FirestoreService {
 
   Future<Map<String, dynamic>?> getLeaveById(String id, String academicYearId, {String? department}) async {
     try {
-      // 1. If department is known, do a DIRECT FETCH (Fastest)
-      if (department != null && department.isNotEmpty) {
-        // Try leaveRequests
-        var doc = await _fire.collection('leaveRequests').doc(department).collection('records').doc(id).get();
-        if (doc.exists) return doc.data();
-
-        // Try compOffRequests
-        doc = await _fire.collection('compOffRequests').doc(department).collection('records').doc(id).get();
-        if (doc.exists) return doc.data();
+      String? deptToTry = department;
+      
+      // 0. Fallback: If department is unknown, try current user's department
+      if (deptToTry == null || deptToTry.isEmpty) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null) {
+          final userDoc = await _fire.collection('users').doc(user.uid).get();
+          if (userDoc.exists) {
+            deptToTry = userDoc.data()?['department'] as String?;
+          }
+        }
       }
 
-      // 2. Fallback: Search across all departments (Slower, requires index)
-      // Try by 'id' field first
-      var snap = await _fire.collectionGroup('records')
-          .where('id', isEqualTo: id)
-          .limit(1)
-          .get();
-      if (snap.docs.isNotEmpty) return snap.docs.first.data();
+      // 1. DIRECT FETCH (Fastest, avoids index requirements)
+      if (deptToTry != null && deptToTry.isNotEmpty) {
+        // --- 1.1 Try by Document ID ---
+        var doc = await _fire.collection('leaveRequests').doc(deptToTry).collection('records').doc(id).get();
+        if (doc.exists) return doc.data();
 
-      // Try by document ID
-      snap = await _fire.collectionGroup('records')
-          .where(FieldPath.documentId, isEqualTo: id)
-          .limit(1)
-          .get();
+        doc = await _fire.collection('compOffRequests').doc(deptToTry).collection('records').doc(id).get();
+        if (doc.exists) return doc.data();
+
+        // --- 1.2 Try by Field search within department ---
+        final snapL = await _fire.collection('leaveRequests').doc(deptToTry).collection('records')
+            .where('applicationId', isEqualTo: id).limit(1).get();
+        if (snapL.docs.isNotEmpty) return snapL.docs.first.data();
+
+        final snapC = await _fire.collection('compOffRequests').doc(deptToTry).collection('records')
+            .where('applicationId', isEqualTo: id).limit(1).get();
+        if (snapC.docs.isNotEmpty) return snapC.docs.first.data();
+      }
+
+      // 2. Fall-safe: Search within user's own records in memory
+      // (Bypasses collectionGroup index requirements because userId index usually exists)
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        final userSnap = await _fire.collectionGroup('records')
+            .where('userId', isEqualTo: user.uid)
+            .get();
+        for (var doc in userSnap.docs) {
+          final data = doc.data();
+          if (doc.id == id || data['id'] == id || data['applicationId'] == id) {
+             return data;
+          }
+        }
+      }
+
+      // 3. Last Resort: Global Search (Likely to fail without index, but kept as backup)
+      var snap = await _fire.collectionGroup('records').where('id', isEqualTo: id).limit(1).get();
       if (snap.docs.isNotEmpty) return snap.docs.first.data();
       
       return null;

@@ -174,7 +174,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   ),
 
                   // --- Custom Builders ---
-                  builders: CalendarBuilders(
+                  calendarBuilders: CalendarBuilders(
                     todayBuilder: (context, date, _) {
                       return Center(
                         child: Container(
@@ -207,6 +207,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         ),
                       );
                     },
+                    // Verification comment: BUILD_FIX_V2
                     markerBuilder: (context, date, events) {
                       if (events.isEmpty) return null;
                       return Positioned(
@@ -214,7 +215,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: events.take(4).map((e) {
-                            final color = Helpers.getLeaveColor(e['leaveType'] ?? '');
+                            if (e is! Map<String, dynamic>) {
+                              return const SizedBox.shrink();
+                            }
+                            final Map<String, dynamic> event = e;
+                            final String type = event['leaveType']?.toString() ?? '';
+                            final Color color = Helpers.getLeaveColor(type);
                             return Container(
                               margin: const EdgeInsets.symmetric(horizontal: 0.5),
                               width: 5,
