@@ -1,9 +1,10 @@
 import 'package:pdf/pdf.dart';
-import 'dart:typed_data'; // ✅ Added for Uint8List
+import 'dart:typed_data'; 
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
-import '../utils/helpers.dart'; // Uses User App's Helpers
+import 'package:cloud_firestore/cloud_firestore.dart'; // ✅ Added for Timestamp check
+import '../utils/helpers.dart'; 
 
 class PdfService {
   
@@ -48,34 +49,17 @@ class PdfService {
     final dynamic toVal = request['toDate'];
     final dynamic appliedVal = request['appliedAt'] ?? request['createdAt'];
     
-    DateTime fromDate = DateTime.now();
-    DateTime toDate = DateTime.now();
-    DateTime appliedAt = DateTime.now();
-
-    if (fromVal != null) {
-       // Handle Timestamp or String
-       if (fromVal.runtimeType.toString().contains('Timestamp')) {
-         fromDate = fromVal.toDate();
-       } else if (fromVal is String) {
-         fromDate = DateTime.tryParse(fromVal) ?? DateTime.now();
-       }
+    DateTime parseDate(dynamic val) {
+      if (val == null) return DateTime.now();
+      if (val is Timestamp) return val.toDate();
+      if (val is DateTime) return val;
+      if (val is String) return DateTime.tryParse(val) ?? DateTime.now();
+      return DateTime.now();
     }
 
-    if (toVal != null) {
-       if (toVal.runtimeType.toString().contains('Timestamp')) {
-         toDate = toVal.toDate();
-       } else if (toVal is String) {
-         toDate = DateTime.tryParse(toVal) ?? DateTime.now();
-       }
-    }
-    
-    if (appliedVal != null) {
-       if (appliedVal.runtimeType.toString().contains('Timestamp')) {
-         appliedAt = appliedVal.toDate();
-       } else if (appliedVal is String) {
-         appliedAt = DateTime.tryParse(appliedVal) ?? DateTime.now();
-       }
-    }
+    DateTime fromDate = parseDate(request['fromDate']);
+    DateTime toDate = parseDate(request['toDate']);
+    DateTime appliedAt = parseDate(request['appliedAt'] ?? request['createdAt']);
 
     final String userName = request['userName'] ?? 'User';
     final String? employeeId = request['employeeId'];

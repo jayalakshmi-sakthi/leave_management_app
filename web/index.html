@@ -162,24 +162,40 @@
   <script>
     window.OneSignal = window.OneSignal || [];
     
-    // Helper function for Flutter to initialize OneSignal with a Specific App ID
+    // Helper function for Flutter to initialize OneSignal
     window.initOneSignal = function(appId) {
-      console.log("🔔 [OneSignal] Initializing with ID: " + appId);
+      console.log("🔔 [OneSignal] Initializing Staff App with ID: " + appId);
       OneSignal.push(async function() {
         await OneSignal.init({
           appId: appId,
           allowLocalhostAsSecureOrigin: true,
+          serviceWorkerParam: { scope: '/push/onesignal/' },
+          serviceWorkerPath: 'OneSignalSDKWorker.js'
         });
-        console.log("✅ [OneSignal] Staff App initialization complete");
+        console.log("✅ [OneSignal] Staff App init complete");
+        
+        // ✅ CRITICAL: Request browser notification permission
+        const permission = await OneSignal.Notifications.requestPermission();
+        console.log("🔔 [OneSignal] Staff Permission:", permission);
+
+        // ✅ Listen for notification clicks — open the notifications page
+        OneSignal.Notifications.addEventListener('click', function(event) {
+          const data = event.notification.additionalData;
+          console.log("🔔 [OneSignal] Staff notification clicked:", data);
+          if (data && data.relatedId) {
+            const url = window.location.origin + window.location.pathname + '#/notifications';
+            window.open(url, '_self');
+          }
+        });
       });
     };
 
-    // Helper function for Flutter to set external user ID (mapping to Firestore UID)
+    // Helper function for Flutter to set external user ID
     window.setOneSignalUser = function(externalId) {
-      console.log("🔗 [OneSignal] Linking Staff: " + externalId);
+      console.log("🔗 [OneSignal] Linking Staff User: " + externalId);
       OneSignal.push(async function() {
         await OneSignal.login(externalId);
-        console.log("✅ [OneSignal] User linked");
+        console.log("✅ [OneSignal] Staff user linked:", externalId);
       });
     };
 
@@ -187,7 +203,7 @@
     window.logoutOneSignal = function() {
       OneSignal.push(async function() {
         await OneSignal.logout();
-        console.log("🚪 [OneSignal] Staff logged out");
+        console.log("🚪 [OneSignal] Staff user logged out");
       });
     };
   </script>
