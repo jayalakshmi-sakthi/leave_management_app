@@ -37,6 +37,15 @@ class NotificationService {
       // 📱 Mobile / 💻 Desktop Setup (Plugin)
       OneSignal.initialize(appId);
       OneSignal.Notifications.requestPermission(true);
+
+      // 🖱️ OneSignal click listener (Mobile/Desktop)
+      OneSignal.Notifications.addClickListener((event) {
+        final data = event.notification.additionalData;
+        if (data != null) {
+          debugPrint("🔔 OneSignal Clicked (Plugin): $data");
+          _navController.add(Map<String, dynamic>.from(data));
+        }
+      });
       
       try {
         // Legacy Local Notifications Setup
