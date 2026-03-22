@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import '../models/user_model.dart';
 import '../services/cloudinary_service.dart';
+import '../services/notification_service.dart';
 
 class FirestoreService {
   final FirebaseFirestore _fire = FirebaseFirestore.instance;
@@ -234,6 +235,23 @@ class FirestoreService {
       'applicationId': appId, // Ensure it's saved
       'createdAt': FieldValue.serverTimestamp()
     });
+    
+    // 🔔 Notify Admins
+    try {
+      await NotificationService().notifyAdmins(
+        title: 'New Leave Request',
+        body: '${data['userName']} applied for ${data['leaveType']} (${data['numberOfDays']} days)',
+        type: 'leave_request', // Matching Admin Tab
+        relatedId: docId,
+        leaveType: data['leaveType'],
+        academicYearId: data['academicYearId'],
+        targetDepartment: department,
+        triggeringUserId: data['userId'],
+      );
+    } catch(e) {
+      debugPrint("🔔 Staff Notification Failed: $e");
+    }
+
     return appId; // Returning applicationId for PDF/UI
   }
 
@@ -277,6 +295,23 @@ class FirestoreService {
       'createdAt': FieldValue.serverTimestamp(),
       'academicYearId': getCurrentAcademicYearString(),
     });
+
+    // 🔔 Notify Admins
+    try {
+      await NotificationService().notifyAdmins(
+        title: 'New Comp-Off Earn Request',
+        body: '$userName has submitted a Comp-Off request for $days days.',
+        type: 'comp_off_request', // Matching Admin Tab
+        relatedId: docId,
+        leaveType: 'COMP-OFF EARN',
+        academicYearId: getCurrentAcademicYearString(),
+        targetDepartment: department,
+        triggeringUserId: userId,
+      );
+    } catch(e) {
+      debugPrint("🔔 Staff Notification Failed: $e");
+    }
+
     return applicationId; // Return sequential ID 
   }
 

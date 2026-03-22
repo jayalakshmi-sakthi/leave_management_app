@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:js' as js; // ✅ OneSignal Web Interop
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -9,6 +8,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http; // ✅ For OneSignal Rest API
 import 'package:onesignal_flutter/onesignal_flutter.dart'; // ✅ For Mobile/Desktop
+
+// 🛡️ Conditional Import for JS Interop (Web)
+import 'notification_service_stub.dart' if (dart.library.html) 'notification_service_web.dart' as js_helper;
 import '../main.dart';
 
 @pragma('vm:entry-point')
@@ -29,17 +31,31 @@ class NotificationService {
   final _navController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get navigationStream => _navController.stream;
 
+  /// Request notification permissions (System Level)
+  Future<void> requestPermission() async {
+    if (kIsWeb) {
+      // Browsers handle this via OneSignal Web SDK
+      return; 
+    } else {
+      await OneSignal.Notifications.requestPermission(true);
+    }
+  }
+
   Future<void> init() async {
     // 🔔 ONESIGNAL INIT (Free Layer 2 - Multi-platform)
     const String appId = '76f30b3e-82fb-48cb-8c8a-88cd994e1a1c';
     
     if (kIsWeb) {
-      debugPrint("🌍 NotificationService: Running on Web. Using JS OneSignal.");
-      js.context.callMethod('initOneSignal', [appId]);
+      debugPrint("🌍 NotificationService: Using JS OneSignal helper.");
+      js_helper.initOneSignal(appId);
     } else {
       // 📱 Mobile / 💻 Desktop Setup (Plugin)
-      OneSignal.initialize(appId);
-      OneSignal.Notifications.requestPermission(true);
+      try {
+        OneSignal.initialize(appId);
+        OneSignal.Notifications.requestPermission(true);
+      } catch (e) {
+        debugPrint("❌ OneSignal Mobile Init Failed: $e");
+      }
 
       // 🖱️ OneSignal click listener (Mobile/Desktop)
       OneSignal.Notifications.addClickListener((event) {
@@ -126,7 +142,7 @@ class NotificationService {
     if (userId != null) {
       if (kIsWeb) {
         // 🔗 Link Staff session to OneSignal (Web)
-        js.context.callMethod('setOneSignalUser', [userId]);
+        js_helper.setOneSignalUser(userId);
       } else {
         // 🔗 Link Staff session (Mobile/Desktop)
         OneSignal.login(userId);
@@ -244,8 +260,12 @@ class NotificationService {
     String? targetDepartment, // ✅ Added
   }) async {
     try {
+      // 🔑 Deterministic ID to prevent duplicates (UserId + RelatedId + Type)
+      // Removing minute to ensure a single unique notification exists per action
+      final String uniqueId = "${toUserId}_${relatedId ?? 'info'}_${type ?? 'general'}";
+
       // 1. Save to Firestore (Real-time DB)
-      await _db.collection('notifications').add({
+      await _db.collection('notifications').doc(uniqueId).set({
         'toUserId': toUserId,
         'title': title,
         'body': body,
@@ -253,7 +273,7 @@ class NotificationService {
         'relatedId': relatedId,
         'leaveType': leaveType,
         'academicYearId': academicYearId,
-        'targetDepartment': targetDepartment, // ✅ Added for filtering
+        'targetDepartment': targetDepartment, 
         'isRead': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -293,11 +313,16 @@ class NotificationService {
         },
         body: jsonEncode({
           'app_id': appId,
-          'include_external_user_ids': [toUserId],
+          'include_aliases': {
+            'external_id': [toUserId]
+          },
           'headings': {'en': title},
           'contents': {'en': body},
           'data': data,
-          'web_url': 'https://leave-management-app-f07b8.web.app/#/notifications',
+          'priority': 10,
+          'android_channel_id': 'leave_status_channel', // Special channel for Staff Status
+          'android_visibility': 1,
+          'web_url': 'https://leavex-staff.web.app/#/notifications',
         }),
       );
     } catch (e) {
@@ -352,12 +377,12 @@ class NotificationService {
           body: body,
           type: type,
           relatedId: relatedId,
-          leaveType: leaveType,
+          leaveType: leaveType, // e.g. 'CL', 'VL'
           academicYearId: academicYearId,
-          targetDepartment: targetDepartment,
+          targetDepartment: targetDepartment?.trim().toUpperCase(), // ✅ Standardize casing for query
         );
       }
-      debugPrint("📢 Notifications sent to ${recipientIds.length} admins (Target: $sanitizedTarget)");
+      debugPrint("📢 Sent request alerts to ${recipientIds.length} admins (Target: $sanitizedTarget)");
     } catch (e) {
       debugPrint("Error notifying admins: $e");
     }
@@ -427,5 +452,15 @@ class NotificationService {
         .where('isRead', isEqualTo: false)
         .snapshots()
         .map((snap) => snap.docs.length);
+  }
+
+  /// Delete a notification
+  Future<void> deleteNotification(String notificationId) async {
+    try {
+      if (notificationId.isEmpty) return;
+      await _db.collection('notifications').doc(notificationId).delete();
+    } catch (e) {
+      debugPrint("Error deleting notification: $e");
+    }
   }
 }

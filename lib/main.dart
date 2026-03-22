@@ -109,7 +109,15 @@ Future<void> main() async {
     // Initialize notification service (Non-blocking)
     print("🚀 [DART] Starting Notification Service Init...");
     NotificationService().init()
-      .then((_) => print("✅ [DART] Notification Service Ready"))
+      .then((_) {
+        print("✅ [DART] Notification Service Ready");
+        // 🔄 Important: Identify user for OneSignal if already logged in!
+        final currentUser = FirebaseAuth.instance.currentUser;
+        if (currentUser != null) {
+          print("🔍 [DART] Self-Identifying existing user for OneSignal: ${currentUser.uid}");
+          NotificationService().setUserId(currentUser.uid);
+        }
+      })
       .catchError((e) {
         print("⚠️ [DART] Notification Service Failed: $e");
         return null;

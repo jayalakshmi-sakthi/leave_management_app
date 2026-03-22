@@ -169,8 +169,8 @@
         await OneSignal.init({
           appId: appId,
           allowLocalhostAsSecureOrigin: true,
-          serviceWorkerParam: { scope: '/push/onesignal/' },
-          serviceWorkerPath: 'OneSignalSDKWorker.js'
+          // 🛡️ standard PWA root scope
+          notifyButton: { enable: true }, 
         });
         console.log("✅ [OneSignal] Staff App init complete");
         
@@ -357,22 +357,22 @@
           const storedVersion = localStorage.getItem('app-version');
 
           if (storedVersion && storedVersion !== latestVersion) {
-            addLog("🚨 [CRITICAL] Version Mismatch! Forcing Hard Refresh...");
+            addLog("🚨 [CRITICAL] App Outdated! Purging Cache & Hard Reloading...");
             localStorage.setItem('app-version', latestVersion);
             
-            // Unregister SWs and clear cache
+            // 🛡️ Heavyweight Purge Strategy
             if ('serviceWorker' in navigator) {
               const regs = await navigator.serviceWorker.getRegistrations();
               for (let reg of regs) { await reg.unregister(); }
             }
-            
-            // Clear cache and hard reload
             if ('caches' in window) {
               const keys = await caches.keys();
               for (let key of keys) { await caches.delete(key); }
             }
             
-            window.location.reload(true);
+            addLog("🔄 [BOOT] Purge complete. Reloading...");
+            // Hard reload via location.href trick
+            window.location.href = window.location.origin + window.location.pathname + '?v=' + latestVersion;
             return;
           } else if (!storedVersion) {
             localStorage.setItem('app-version', latestVersion);
@@ -386,6 +386,9 @@
       // 3. Modern Flutter Bootstrapping
       window.addEventListener('load', function(ev) {
         addLog("📦 [BOOT] Window Loaded");
+        // 🔄 Proactively check for new version before/during Flutter load
+        checkVersion(); 
+
         _flutter.loader.load({
           serviceWorkerSettings: {
             serviceWorkerVersion: {{flutter_service_worker_version}},
