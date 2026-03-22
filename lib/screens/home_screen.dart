@@ -439,7 +439,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: ResponsiveWrapper(
-        maxWidth: 600, // Reduced back to mobile size per user request
+        maxWidth: 800, // Increased for a better look on wider screens, still looks great on mobile
         child: RefreshIndicator(
           onRefresh: _loadAll,
           child: CustomScrollView(
@@ -859,51 +859,40 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildActionGrid() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final availableWidth = constraints.maxWidth;
-        final bool isWide = MediaQuery.of(context).size.width > 600;
+        final double width = constraints.maxWidth;
+        // 3 columns if wide, 2 if narrow
+        int crossAxisCount = width > 500 ? 3 : 2;
+        
+        // Define action items
+        final List<Map<String, dynamic>> items = [
+          {'icon': Icons.add_circle_outline, 'label': "Apply Leave", 'color': const Color(0xFF001C3D), 'tap': () => Navigator.pushNamed(context, '/apply')},
+          {'icon': Icons.star_rounded, 'label': "Earn Comp", 'color': const Color(0xFF003366), 'tap': () => Navigator.pushNamed(context, '/request-compoff')},
+          {'icon': Icons.history_rounded, 'label': "History", 'color': primaryNavy, 'tap': () => Navigator.pushNamed(context, '/history')},
+          {'icon': Icons.calendar_month_rounded, 'label': "Dept. Calendar", 'color': const Color(0xFF003366), 'tap': () => Navigator.pushNamed(context, '/calendar')},
+          {
+            'icon': _role != 'admin' ? Icons.person_outline_rounded : Icons.admin_panel_settings_outlined, 
+            'label': _role != 'admin' ? "Profile" : "Admin", 
+            'color': primaryNavy, 
+            'tap': () => Navigator.pushNamed(context, _role != 'admin' ? '/profile' : '/admin')
+          },
+          {'icon': Icons.business_center_outlined, 'label': "Apply OD", 'color': primaryNavy, 'tap': () => Navigator.pushNamed(context, '/apply', arguments: {'type': 'OD'})},
+        ];
 
-        return Column(
-          children: [
-            // Row 1: Apply & Earn Comp
-            Row(
-              children: [
-                Expanded(child: _buildActionTile(Icons.add_circle_outline, "Apply Leave", () => Navigator.pushNamed(context, '/apply'), const Color(0xFF001C3D))),
-                const SizedBox(width: 14),
-                Expanded(child: _buildActionTile(Icons.star_rounded, "Earn Comp", () => Navigator.pushNamed(context, '/request-compoff'), const Color(0xFF003366))),
-              ],
-            ),
-            const SizedBox(height: 14),
-            
-            // Row 2: History & Calendar
-            Row(
-              children: [
-                Expanded(child: _buildActionTile(Icons.history_rounded, "History", () => Navigator.pushNamed(context, '/history'), primaryNavy)),
-                const SizedBox(width: 14),
-                Expanded(child: _buildActionTile(Icons.calendar_month_rounded, "Dept. Calendar", () => Navigator.pushNamed(context, '/calendar'), const Color(0xFF003366))),
-              ],
-            ),
-            const SizedBox(height: 14),
-            
-            // Row 3: Profile/Admin & Apply OD
-            Row(
-              children: [
-                if (_role != 'admin')
-                  Expanded(child: _buildActionTile(Icons.person_outline_rounded, "Profile", () => Navigator.pushNamed(context, '/profile'), primaryNavy))
-                else
-                  Expanded(child: _buildActionTile(Icons.admin_panel_settings_outlined, "Admin", () => Navigator.pushNamed(context, '/admin'), primaryNavy)),
-                 
-                 const SizedBox(width: 14),
-                 
-                 // Apply OD (Moved from full width)
-                 Expanded(child: _buildActionTile(
-                   Icons.business_center_outlined, 
-                   "Apply OD", 
-                   () => Navigator.pushNamed(context, '/apply', arguments: {'type': 'OD'}), 
-                   primaryNavy
-                 )),
-              ],
-            ),
-          ],
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: EdgeInsets.zero,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: width > 500 ? 1.4 : 1.1,
+          ),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final it = items[index];
+            return _buildActionTile(it['icon'], it['label'], it['tap'], it['color']);
+          },
         );
       },
     );
@@ -1233,23 +1222,21 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     return LayoutBuilder(
       builder: (context, constraints) {
-        // HARDCODED to 2 columns to satisfy user request 📱
-        final crossAxisCount = 2;
-        final childAspectRatio = 0.85;
+        final double width = constraints.maxWidth;
+        // Use at least 2 columns, but more if space allows
+        int crossAxisCount = width > 500 ? (width > 800 ? 4 : 3) : 2;
+        double childAspectRatio = width > 500 ? 1.0 : 0.85;
         
         return Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1000), 
-            child: GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: crossAxisCount,
-              childAspectRatio: childAspectRatio,
-              crossAxisSpacing: 14,
-              mainAxisSpacing: 16,
-              padding: EdgeInsets.zero,
-              children: tiles,
-            ),
+          child: GridView.count(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: childAspectRatio,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 16,
+            padding: EdgeInsets.zero,
+            children: tiles,
           ),
         );
       },
