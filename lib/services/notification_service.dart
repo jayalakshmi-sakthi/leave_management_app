@@ -14,8 +14,8 @@ import 'notification_service_stub.dart' if (dart.library.html) 'notification_ser
 import '../main.dart';
 
 @pragma('vm:entry-point')
-Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  debugPrint("Handling a background message: ${message.messageId}");
+Future<void> fcmBackgroundHandler(RemoteMessage message) async {
+  debugPrint("🔥 [FCM Background] Message ID: ${message.messageId}");
 }
 
 class NotificationService {
@@ -42,14 +42,13 @@ class NotificationService {
   }
 
   Future<void> init() async {
-    // 🔔 ONESIGNAL INIT (Free Layer 2 - Multi-platform)
-    const String appId = '76f30b3e-82fb-48cb-8c8a-88cd994e1a1c';
+    final String appId = '76f30b3e-82fb-48cb-8c8a-88cd994e1a1c';
     
+    // 🔔 1. ONESIGNAL INIT
     if (kIsWeb) {
       debugPrint("🌍 NotificationService: Using JS OneSignal helper.");
       js_helper.initOneSignal(appId);
     } else {
-      // 📱 Mobile / 💻 Desktop Setup (Plugin)
       try {
         OneSignal.initialize(appId);
         OneSignal.Notifications.requestPermission(true);
@@ -57,7 +56,6 @@ class NotificationService {
         debugPrint("❌ OneSignal Mobile Init Failed: $e");
       }
 
-      // 🖱️ OneSignal click listener (Mobile/Desktop)
       OneSignal.Notifications.addClickListener((event) {
         final data = event.notification.additionalData;
         if (data != null) {
@@ -65,65 +63,85 @@ class NotificationService {
           _navController.add(Map<String, dynamic>.from(data));
         }
       });
-      
-      try {
-        // Legacy Local Notifications Setup
-           if (defaultTargetPlatform == TargetPlatform.android) {
-             const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-             const initSettings = InitializationSettings(android: androidSettings);
-             
-             await _localNotifications.initialize(
-                initSettings,
-                onDidReceiveNotificationResponse: (details) {
-                   if (details.payload != null) {
-                      try {
-                        final data = jsonDecode(details.payload!);
-                      final type = data['type'];
-                      final relatedId = data['relatedId'];
-                      final academicYearId = data['academicYearId'];
-          
-                      if (type == 'status_change' && relatedId != null) {
-                        navigatorKey.currentState?.pushNamed(
-                          AppRoutes.detail,
-                          arguments: {
-                            'leaveId': relatedId,
-                            'academicYearId': academicYearId ?? '2024-2025',
-                          },
-                        );
-                      }
-                    } catch (e) {
-                      debugPrint("Error handling notification payload: $e");
-                    }
-                 }
-              },
-           );
-  
-          // Create Channel
-          const channel = AndroidNotificationChannel(
-            'leave_status_channel',
-            'Leave Status Updates',
-            description: 'Notifications for leave approvals and rejections',
-            importance: Importance.max,
-            playSound: true,
-            enableVibration: true,
-          );
-  
-          
-            await _localNotifications
-                .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
-                ?.createNotificationChannel(channel);
-           }
-      } catch (e) {
-         debugPrint("⚠️ LocalNotification Init Error: $e");
+    }
+
+    // 🔔 2. FCM INIT (Safety Layer)
+    try {
+      if (!kIsWeb) {
+         // Request Permissions for Android 13+
+         await _fcm.requestPermission(alert: true, badge: true, sound: true);
+         
+         // Get FCM Token for safe fallback / direct messaging
+         String? fcmToken = await _fcm.getToken();
+         if (fcmToken != null) {
+           debugPrint("🔥 FCM DEVICE TOKEN: $fcmToken");
+           // We'll save it whenever a user is identified via setUserId
+         }
+
+         // Foreground FCM listener
+         FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+            debugPrint("🔥 [FCM Foreground] Title: ${message.notification?.title}");
+            if (message.notification != null) {
+               showLocalNotification(
+                  id: message.hashCode,
+                  title: message.notification!.title!,
+                  body: message.notification!.body!,
+                  payload: jsonEncode(message.data),
+               );
+            }
+         });
+
+         // Background FCM click listener
+         FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+            debugPrint("🔥 [FCM Background Click]: ${message.data}");
+            _navController.add(message.data);
+         });
       }
+    } catch (e) {
+      debugPrint("⚠️ FCM Init Error: $e");
+    }
+
+    // 🔔 3. LOCAL NOTIFICATIONS (For Heads-up)
+    try {
+       if (defaultTargetPlatform == TargetPlatform.android) {
+         const androidSettings = AndroidInitializationSettings('@mipmap/launcher_icon');
+         const initSettings = InitializationSettings(android: androidSettings);
+         
+         await _localNotifications.initialize(
+            initSettings,
+            onDidReceiveNotificationResponse: (details) {
+               if (details.payload != null) {
+                  try {
+                    final data = jsonDecode(details.payload!);
+                    _navController.add(Map<String, dynamic>.from(data));
+                  } catch (e) {
+                    debugPrint("Error handling notification payload: $e");
+                  }
+               }
+            },
+         );
+
+        const channel = AndroidNotificationChannel(
+          'leave_status_channel',
+          'Leave Status Updates',
+          description: 'Notifications for leave approvals and rejections',
+          importance: Importance.max,
+          playSound: true,
+          enableVibration: true,
+        );
+
+        await _localNotifications
+            .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(channel);
+       }
+    } catch (e) {
+       debugPrint("⚠️ LocalNotification Init Error: $e");
     }
 
     // 🌐 WEB DEEP LINK CHECK
     if (kIsWeb) {
       final params = Uri.base.queryParameters;
       if (params.containsKey('type') && params.containsKey('id')) {
-        debugPrint("🌐 Web Launch Params Detected: $params");
-        // Map URL keys to internal keys
         final mappedData = Map<String, dynamic>.from(params);
         mappedData['relatedId'] = params['id'];
         mappedData['academicYearId'] = params['year'];
@@ -141,11 +159,16 @@ class NotificationService {
     _currentUserId = userId;
     if (userId != null) {
       if (kIsWeb) {
-        // 🔗 Link Staff session to OneSignal (Web)
         js_helper.setOneSignalUser(userId);
       } else {
-        // 🔗 Link Staff session (Mobile/Desktop)
         OneSignal.login(userId);
+
+        // 🔥 Safely link FCM Token to Firestore for this user
+        _fcm.getToken().then((token) {
+          if (token != null) {
+            _saveToken(token, userId);
+          }
+        });
       }
     }
   }

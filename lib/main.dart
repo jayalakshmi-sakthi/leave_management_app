@@ -7,7 +7,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'utils/theme_controller.dart';
 import 'firebase_options.dart';
 import 'services/notification_service.dart';
-import 'services/update_service.dart'; // ✅ Added
+import 'services/update_service.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'; // ✅ Required for Background Handler
 
 // Screens
 import 'screens/splash_screen.dart';
@@ -107,6 +108,11 @@ Future<void> main() async {
     }
     
     // Initialize notification service (Non-blocking)
+    print("🚀 [DART] Registering FCM Background Handler...");
+    if (!kIsWeb) {
+      FirebaseMessaging.onBackgroundMessage(fcmBackgroundHandler);
+    }
+
     print("🚀 [DART] Starting Notification Service Init...");
     NotificationService().init()
       .then((_) {
