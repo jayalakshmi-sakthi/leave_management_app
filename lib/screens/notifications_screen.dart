@@ -66,19 +66,12 @@ class NotificationsScreen extends StatelessWidget {
 
             return CustomScrollView(
               slivers: [
-                SliverToBoxAdapter(
+                const SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildDiagnosticCard(context, user, theme),
-                        const SizedBox(height: 24),
-                        const Text(
-                          "History",
-                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                      ],
+                    padding: EdgeInsets.fromLTRB(20, 24, 20, 16),
+                    child: Text(
+                      "History",
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
@@ -113,84 +106,6 @@ class NotificationsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDiagnosticCard(BuildContext context, User user, ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: theme.cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.dividerColor),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(Icons.security_update_good_rounded, color: theme.colorScheme.primary, size: 20),
-              ),
-              const SizedBox(width: 12),
-              const Text("System Diagnostic", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            "Push notifications rely on browser/system permissions. Use the button below to test if the 'WhatsApp-style' background cards are active for LeaveX on this device.",
-            style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.4),
-          ),
-          const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                // 🛡️ Force Permission Request Browser Level
-                await NotificationService().requestPermission();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text("🚀 Push in 5s! MINIMIZE THE APP & LOCK now to test System Tray alert."),
-                    duration: Duration(seconds: 6),
-                    backgroundColor: Color(0xFF7C3AED),
-                  )
-                );
-                
-                // ⏳ 5s Delay to give user time to minimize
-                await Future.delayed(const Duration(seconds: 5));
-
-                await NotificationService().sendNotification(
-                  toUserId: user.uid,
-                  title: '🔔 WhatsApp-Style Alert: SUCCESS',
-                  body: 'This high-priority notification works even when your device is locked.',
-                  type: 'info',
-                );
-              },
-              icon: const Icon(Icons.flash_on_rounded, size: 18),
-              label: const Text("Test System Notification"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C3AED),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildEmptyState(bool isDark) {
     return Center(
@@ -292,7 +207,9 @@ class NotificationsScreen extends StatelessWidget {
 
           if (relatedId == null || relatedId.isEmpty) return;
 
-          if (nType == 'comp_off' || leaveType == 'Comp-Off Earn') {
+          final String? lType = leaveType?.toString().toUpperCase();
+
+          if (nType == 'comp_off' || lType == 'COMP-OFF EARN' || lType == 'COMP-OFF CREDIT' || nType == 'comp_off_request') {
             Navigator.pushNamed(
               context, 
               AppRoutes.compOffDetail,

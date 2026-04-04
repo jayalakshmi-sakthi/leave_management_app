@@ -76,43 +76,65 @@ class _HomeScreenState extends State<HomeScreen> {
       notifService.setUserId(_uid); // ✅ ADDED
       notifService.listenForNewNotifications(_uid);
 
-      // Listen for Background FCM clicks
-      notifService.navigationStream.listen((data) {
-        debugPrint("🧭 Navigating from Background FCM: $data");
-        final type = data['type'];
-        final relatedId = data['relatedId'];
-        final academicYearId = data['academicYearId'];
+      // 🛡️ Handle "Terminated State" clicks (clicked while app was closed)
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+         final pending = notifService.pendingNavigation;
+         if (pending != null) {
+            debugPrint("🚀 [Management] Processing Terminated-State Click: $pending");
+            // Small delay to ensure the screen is ready
+            await Future.delayed(const Duration(milliseconds: 800));
+            if (mounted) {
+              _handleNotificationClick(pending);
+              notifService.clearPendingNavigation();
+            }
+         }
+      });
 
-        if (type == 'status_change' && relatedId != null) {
-          final lType = data['leaveType'];
-          if (lType == 'COMP' || lType == 'Comp-Off Earn') {
-            Navigator.pushNamed(
-              context,
-              AppRoutes.compOffDetail,
-              arguments: relatedId,
-            );
-          } else {
-            Navigator.pushNamed(
-              context,
-              AppRoutes.detail,
-              arguments: {
-                'leaveId': relatedId,
-                'academicYearId': academicYearId ?? '2024-2025',
-              },
-            );
-          }
-        } else if (type == 'comp_off_request' && relatedId != null) {
-          Navigator.pushNamed(
-            context,
-            AppRoutes.compOffDetail,
-            arguments: relatedId,
-          );
-        } else if (type == 'announcement') {
-          Navigator.pushNamed(context, AppRoutes.notifications);
-        }
+      // 🧭 Listen for real-time and background clicks
+      notifService.navigationStream.listen((data) {
+        if (!mounted) return;
+        debugPrint("🧭 Notification Navigation Triggered: $data");
+        _handleNotificationClick(data);
       });
 
       _loadAll(); 
+    }
+  }
+
+  void _handleNotificationClick(Map<String, dynamic> data) {
+    debugPrint("🧭 Redirecting: $data");
+    final type = data['type'];
+    final relatedId = data['relatedId'];
+    final academicYearId = data['academicYearId'];
+    final String? lType = data['leaveType']?.toString().toUpperCase();
+
+    if ((type == 'status_change' || type == 'comp_off_request' || type == 'comp_off') && relatedId != null) {
+      // 🏰 Navigation Rule:
+      // - Comp-Off EARN/CREDIT (activityType: comp_off) -> CompOffDetailScreen
+      // - Comp-Off LEAVE/USAGE (leaveType: COMP) -> LeaveDetailScreen
+      
+      if (lType == 'COMP-OFF EARN' || lType == 'COMP-OFF CREDIT' || type == 'comp_off_request' || type == 'comp_off') {
+        Navigator.pushNamed(
+          context,
+          AppRoutes.compOffDetail,
+          arguments: {
+            'docId': relatedId,
+            'department': data['targetDepartment'] ?? _userDept,
+          },
+        );
+      } else {
+        Navigator.pushNamed(
+          context,
+          AppRoutes.detail,
+          arguments: {
+            'leaveId': relatedId,
+            'academicYearId': academicYearId ?? '2024-2025',
+            'department': data['targetDepartment'] ?? _userDept,
+          },
+        );
+      }
+    } else if (type == 'announcement' || type == 'info') {
+      Navigator.pushNamed(context, AppRoutes.notifications);
     }
   }
 
@@ -783,7 +805,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
       decoration: BoxDecoration(
         color: theme.cardColor,
         borderRadius: BorderRadius.circular(24),
@@ -803,37 +825,42 @@ class _HomeScreenState extends State<HomeScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: color.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: color, size: 28),
+            child: Icon(icon, color: color, size: 24),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
             label, 
             style: theme.textTheme.labelLarge?.copyWith(
               fontWeight: FontWeight.w700,
-              fontSize: 12,
+              fontSize: 11,
               letterSpacing: 0.2,
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          Text(
-            val.toStringAsFixed(val % 1 == 0 ? 0 : 1).replaceAll('.0', ''), 
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontSize: 34,
-              fontWeight: FontWeight.w900,
-              color: isDark ? Colors.white : primaryNavy,
-              letterSpacing: -1,
+          const SizedBox(height: 4),
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                val.toStringAsFixed(val % 1 == 0 ? 0 : 1).replaceAll('.0', ''), 
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w900,
+                  color: isDark ? Colors.white : primaryNavy,
+                  letterSpacing: -1,
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
-            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
@@ -843,7 +870,7 @@ class _HomeScreenState extends State<HomeScreen> {
             child: Text(
               subLabel, 
               style: TextStyle(
-                fontSize: 9, 
+                fontSize: 8, 
                 color: color, 
                 fontWeight: FontWeight.w900, 
                 letterSpacing: 0.8
@@ -903,7 +930,7 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -914,17 +941,20 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 28)
+              child: Icon(icon, color: color, size: 24)
             ),
-            const SizedBox(height: 16),
-            Text(
-              label, 
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: textMain),
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 12),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label, 
+                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: textMain),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -1166,78 +1196,86 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // --- NEW: Shimmer Balances Grid ---
   Widget _buildBalancesGrid() {
-    if (_loadingCounts) {
-       return GridView.count(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        crossAxisCount: 2,
-        childAspectRatio: 0.95,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 16,
-        padding: EdgeInsets.zero, // Padding handled by parent
-        children: List.generate(4, (index) => _buildSkeletonTile()),
-      );
+    if (academicYear.isEmpty) {
+       return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
     }
 
-    Map<String, dynamic> items = Map.from(_leaveBalances);
-    // Default Balances if empty
-    if (items.isEmpty && !_loadingCounts) { // Only if not loading
-      items = {
-        'CL': {'limit': 12, 'balance': 0, 'color': const Color(0xFF4F46E5)},
-        'VL': {'limit': 6, 'balance': 0, 'color': const Color(0xFF10B981)},
-      };
-    }
+    final fs = FirestoreService();
     
-    List<Widget> tiles = [];
-    final keys = items.keys.toList();
-    keys.sort((a, b) {
-       if (a == 'CL') return -1;
-       if (b == 'CL') return 1;
-       return 0;
-    });
+    return StreamBuilder<Map<String, double>>(
+      stream: fs.streamDynamicUserBalances(_uid, _userDept),
+      builder: (context, leaveSnap) {
+        return StreamBuilder<Map<String, double>>(
+          stream: fs.streamCompOffStats(_uid, academicYear),
+          builder: (context, compSnap) {
+             final leaveBalances = leaveSnap.data;
+             final compStats = compSnap.data;
+             
+             if (leaveSnap.connectionState == ConnectionState.waiting || compSnap.connectionState == ConnectionState.waiting) {
+                return LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double width = constraints.maxWidth;
+                    return GridView.count(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      crossAxisCount: width > 500 ? (width > 800 ? 4 : 3) : 2,
+                      childAspectRatio: width > 500 ? 1.0 : 0.85,
+                      crossAxisSpacing: 14,
+                      mainAxisSpacing: 16,
+                      padding: EdgeInsets.zero,
+                      children: List.generate(4, (index) => _buildSkeletonTile()),
+                    );
+                  }
+                );
+             }
 
-    for (var k in keys) {
-      if (k == 'OD' || k == 'SL') continue; // Hidden types
+             final stats = compStats ?? {'limit': 0.0, 'used': 0.0};
+             final double compBalance = (stats['limit']! - stats['used']!).clamp(0.0, 99.0);
+             final double compUsed = stats['used']!;
 
-      final v = items[k]!;
-      final icon = Helpers.getLeaveIcon(k);
-      final color = Helpers.getLeaveColor(k);
-      
-      tiles.add(_buildStatTile(
-          Helpers.getLeaveName(k), 
-          (v['balance'] as num).toDouble(), 
-          (v['color'] is int) ? Color(v['color']) : (v['color'] as Color? ?? color), // Use dynamic color if available
-          v['icon'] != null ? Helpers.getIconFromCodePoint(v['icon']) : icon, // Use dynamic icon if available
-          "LEFT"));
-    }
-    
-    // Add Comp Off Balance
-    final compBalance = _compGranted.clamp(0.0, 99.0);
-    tiles.add(
-       _buildStatTile("Comp Off", compBalance, const Color(0xFF8B5CF6), Icons.star_rounded, "LEFT")
-    );
-    // Add Comp Off Used
-    tiles.add(
-      _buildStatTile("Comp Used", _compUsed, const Color(0xFF003366), Icons.history_rounded, "USED")
-    );
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final double width = constraints.maxWidth;
-        // Use at least 2 columns, but more if space allows
-        int crossAxisCount = width > 500 ? (width > 800 ? 4 : 3) : 2;
-        double childAspectRatio = width > 500 ? 1.0 : 0.85;
-        
-        return Center(
-          child: GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: childAspectRatio,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 16,
-            padding: EdgeInsets.zero,
-            children: tiles,
-          ),
+             // Merge real-time counts into a list of tiles
+             List<Widget> tiles = [];
+             
+             // 1. Regular Leave Types
+             _leaveBalances.forEach((name, data) {
+                 final bal = (leaveBalances ?? {})[name] ?? 0.0;
+                 final style = _styleCache[name] ?? {};
+                 tiles.add(_buildStatTile(
+                    Helpers.getLeaveName(name),
+                    bal,
+                    style['color'] ?? Helpers.getLeaveColor(name),
+                    style['icon'] ?? Helpers.getLeaveIcon(name),
+                    "LEFT"
+                 ));
+             });
+
+             // 2. Comp Off Balance
+             tiles.add(_buildStatTile("Comp Off", compBalance, const Color(0xFF8B5CF6), Icons.star_rounded, "LEFT"));
+             
+             // 3. Comp Used
+             tiles.add(_buildStatTile("Comp Used", compUsed, const Color(0xFF003366), Icons.history_rounded, "USED"));
+
+             return LayoutBuilder(
+              builder: (context, constraints) {
+                final double width = constraints.maxWidth;
+                int crossAxisCount = width > 500 ? (width > 800 ? 4 : 3) : 2;
+                double childAspectRatio = width > 500 ? 1.0 : 0.85;
+                
+                return Center(
+                  child: GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: crossAxisCount,
+                    childAspectRatio: childAspectRatio,
+                    crossAxisSpacing: 14,
+                    mainAxisSpacing: 16,
+                    padding: EdgeInsets.zero,
+                    children: tiles,
+                  ),
+                );
+              },
+            );
+          },
         );
       },
     );

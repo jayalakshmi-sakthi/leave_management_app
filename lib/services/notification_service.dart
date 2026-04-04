@@ -28,8 +28,14 @@ class NotificationService {
   NotificationService._internal();
 
   String? _currentUserId; // ✅ Store current user for token association
+  
+  // 🧭 Navigation Stream
   final _navController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get navigationStream => _navController.stream;
+  
+  Map<String, dynamic>? _pendingData; // ✅ Handles "Terminated State" clicks
+  Map<String, dynamic>? get pendingNavigation => _pendingData;
+  void clearPendingNavigation() => _pendingData = null;
 
   /// Request notification permissions (System Level)
   Future<void> requestPermission() async {
@@ -60,7 +66,12 @@ class NotificationService {
         final data = event.notification.additionalData;
         if (data != null) {
           debugPrint("🔔 OneSignal Clicked (Plugin): $data");
-          _navController.add(Map<String, dynamic>.from(data));
+          final mappedData = Map<String, dynamic>.from(data);
+          if (_navController.hasListener) {
+            _navController.add(mappedData);
+          } else {
+            _pendingData = mappedData;
+          }
         }
       });
     }
@@ -75,7 +86,6 @@ class NotificationService {
          String? fcmToken = await _fcm.getToken();
          if (fcmToken != null) {
            debugPrint("🔥 FCM DEVICE TOKEN: $fcmToken");
-           // We'll save it whenever a user is identified via setUserId
          }
 
          // Foreground FCM listener
@@ -91,11 +101,23 @@ class NotificationService {
             }
          });
 
-         // Background FCM click listener
+         // Background FCM click listener (app in background)
          FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
             debugPrint("🔥 [FCM Background Click]: ${message.data}");
-            _navController.add(message.data);
+            if (_navController.hasListener) {
+              _navController.add(message.data);
+            } else {
+              _pendingData = message.data;
+            }
          });
+
+         // ✅ Handle Terminated State Click (app was fully closed)
+         final initialMessage = await _fcm.getInitialMessage();
+         if (initialMessage != null) {
+            debugPrint("🔥 [FCM Terminated Click]: ${initialMessage.data}");
+            _pendingData = initialMessage.data;
+            _navController.add(initialMessage.data); // Notify active listeners too
+         }
       }
     } catch (e) {
       debugPrint("⚠️ FCM Init Error: $e");
@@ -113,7 +135,12 @@ class NotificationService {
                if (details.payload != null) {
                   try {
                     final data = jsonDecode(details.payload!);
-                    _navController.add(Map<String, dynamic>.from(data));
+                    final mappedData = Map<String, dynamic>.from(data);
+                    if (_navController.hasListener) {
+                      _navController.add(mappedData);
+                    } else {
+                      _pendingData = mappedData;
+                    }
                   } catch (e) {
                     debugPrint("Error handling notification payload: $e");
                   }
@@ -158,6 +185,9 @@ class NotificationService {
   void setUserId(String? userId) {
     _currentUserId = userId;
     if (userId != null) {
+      // 🛡️ Start real-time Firestore listener for results/approvals
+      listenForNewNotifications(userId);
+
       if (kIsWeb) {
         js_helper.setOneSignalUser(userId);
       } else {
@@ -217,7 +247,6 @@ class NotificationService {
         ledOnMs: 1000,
         ledOffMs: 500,
         enableLights: true,
-        timeoutAfter: 5000, // ✅ Auto-dismiss after 5 seconds
         category: AndroidNotificationCategory.message,
         styleInformation: const BigTextStyleInformation(''),
       );
@@ -288,6 +317,8 @@ class NotificationService {
       final String uniqueId = "${toUserId}_${relatedId ?? 'info'}_${type ?? 'general'}";
 
       // 1. Save to Firestore (Real-time DB)
+      final String? upperDept = targetDepartment?.trim().toUpperCase();
+      
       await _db.collection('notifications').doc(uniqueId).set({
         'toUserId': toUserId,
         'title': title,
@@ -296,7 +327,7 @@ class NotificationService {
         'relatedId': relatedId,
         'leaveType': leaveType,
         'academicYearId': academicYearId,
-        'targetDepartment': targetDepartment, 
+        'targetDepartment': upperDept, 
         'isRead': false,
         'createdAt': FieldValue.serverTimestamp(),
       });
@@ -311,6 +342,7 @@ class NotificationService {
           'relatedId': relatedId ?? '',
           'leaveType': leaveType ?? '',
           'academicYearId': academicYearId ?? '',
+          'targetDepartment': upperDept ?? '',
         },
       );
     } catch (e) {
@@ -343,11 +375,20 @@ class NotificationService {
           'contents': {'en': body},
           'data': data,
           'priority': 10,
-          'android_channel_id': 'leave_status_channel', // Special channel for Staff Status
+          'android_channel_id': 'leave_status_channel',
           'android_visibility': 1,
           'web_url': 'https://leavex-staff.web.app/#/notifications',
         }),
       );
+
+      if (response.statusCode != 200) {
+        debugPrint("❌ OneSignal Push Failed (${response.statusCode}): ${response.body}");
+        if (response.body.contains("Access denied")) {
+          debugPrint("⚠️ TIP: Your REST API Key might be invalid. Check OneSignal Dashboard > Settings > Keys & IDs.");
+        }
+      } else {
+        debugPrint("🚀 OneSignal Push Sent to $toUserId");
+      }
     } catch (e) {
       debugPrint("OneSignal Push Error: $e");
     }
@@ -394,16 +435,17 @@ class NotificationService {
       }
 
       for (var uid in recipientIds) {
-        await sendNotification(
+        // 🔥 Use Future.delayed or call without await to avoid blocking if OneSignal fails
+        sendNotification(
           toUserId: uid,
           title: title,
           body: body,
           type: type,
           relatedId: relatedId,
-          leaveType: leaveType, // e.g. 'CL', 'VL'
+          leaveType: leaveType,
           academicYearId: academicYearId,
-          targetDepartment: targetDepartment?.trim().toUpperCase(), // ✅ Standardize casing for query
-        );
+          targetDepartment: targetDepartment?.trim().toUpperCase(),
+        ).catchError((e) => debugPrint("Error notifying admin $uid: $e"));
       }
       debugPrint("📢 Sent request alerts to ${recipientIds.length} admins (Target: $sanitizedTarget)");
     } catch (e) {

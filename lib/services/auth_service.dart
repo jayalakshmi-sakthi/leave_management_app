@@ -26,6 +26,19 @@ class AuthService {
         throw "Login failed. Try again.";
       }
 
+      // 🔐 FETCH ROLE & VERIFY
+      final userDoc = await _fire.collection(_users).doc(user.uid).get();
+      if (!userDoc.exists) {
+        await _auth.signOut();
+        throw "User record not found.";
+      }
+
+      final role = userDoc.data()?['role'];
+      if (role == 'admin' || role == 'super_admin') {
+        await _auth.signOut();
+        throw "This email is registered for Admin Panel use only. Please use your staff account.";
+      }
+
       // 🔐 BLOCK IF EMAIL NOT VERIFIED
       if (!user.emailVerified) {
         await _auth.signOut();

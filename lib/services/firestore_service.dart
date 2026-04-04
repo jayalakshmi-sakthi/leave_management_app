@@ -441,6 +441,40 @@ class FirestoreService {
   // 📈 COMP-OFF STATS
   // ──────────────────────────────────────────────────────────
 
+  Stream<Map<String, double>> streamCompOffStats(String userId, String academicYear) {
+    // 1. Listen to Comp-Off Grants (Credits)
+    final grantsStream = _fire.collectionGroup('compOffGrants')
+        .where('userId', isEqualTo: userId)
+        .where('academicYearId', isEqualTo: academicYear)
+        .snapshots();
+
+    // 2. Listen to Comp-Off Usage (Debits)
+    // We need to know the department for leaveRequests, but collectionGroup is safer for real-time
+    final usageStream = _fire.collectionGroup('records')
+        .where('userId', isEqualTo: userId)
+        .where('academicYearId', isEqualTo: academicYear)
+        .where('leaveType', isEqualTo: 'COMP')
+        .where('status', isEqualTo: 'Approved')
+        .snapshots();
+
+    return StreamZip([grantsStream, usageStream]).map((snaps) {
+      final grantsSnap = snaps[0] as QuerySnapshot;
+      final usageSnap = snaps[1] as QuerySnapshot;
+
+      double totalGranted = 0.0;
+      for (var doc in grantsSnap.docs) {
+        totalGranted += (doc.data() as Map<String, dynamic>)['days']?.toDouble() ?? 0.0;
+      }
+
+      double totalUsed = 0.0;
+      for (var doc in usageSnap.docs) {
+        totalUsed += (doc.data() as Map<String, dynamic>)['numberOfDays']?.toDouble() ?? 0.0;
+      }
+
+      return {'limit': totalGranted, 'used': totalUsed};
+    });
+  }
+
   Future<Map<String, double>> getCompOffStats(String userId, String academicYear) async {
     try {
       final snap = await _fire.collectionGroup('compOffGrants')
